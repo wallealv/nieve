@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { AlertSettings } from './components/dashboard/AlertSettings.js';
 import { BestWindows } from './components/dashboard/BestWindows.js';
 import { CurrentSnowPanel } from './components/dashboard/CurrentSnowPanel.js';
@@ -8,7 +8,9 @@ import { Header } from './components/dashboard/Header.js';
 import { HourlyTimeline } from './components/dashboard/HourlyTimeline.js';
 import { LevelSummaryCard } from './components/dashboard/LevelSummaryCard.js';
 import { LoadingDashboard } from './components/dashboard/LoadingDashboard.js';
+import { LocalDataSettings } from './components/dashboard/LocalDataSettings.js';
 import { ModelRunEvolution } from './components/dashboard/ModelRunEvolution.js';
+import { PwaStatus } from './components/dashboard/PwaStatus.js';
 import { RoadStatusCard } from './components/dashboard/RoadStatusCard.js';
 import { SectionSkeleton } from './components/dashboard/SectionSkeleton.js';
 import { SnowPhaseQuality } from './components/dashboard/SnowPhaseQuality.js';
@@ -21,10 +23,11 @@ import { useCurrentSnow } from './hooks/useCurrentSnow.js';
 import { useForecast } from './hooks/useForecast.js';
 import { useForecastHistory } from './hooks/useForecastHistory.js';
 import { useHourlyForecast } from './hooks/useHourlyForecast.js';
+import { useLocalPreferences } from './hooks/useLocalPreferences.js';
 import { useModelRuns } from './hooks/useModelRuns.js';
+import { usePwaStatus } from './hooks/usePwaStatus.js';
 import { useRoadStatus } from './hooks/useRoadStatus.js';
 import { useWebcamStatus } from './hooks/useWebcamStatus.js';
-import type { ForecastPeriod } from './lib/forecast/presentation.js';
 import { findPrimaryStorm } from './lib/forecast/storm.js';
 import { findBestWindows } from './lib/forecast/windows.js';
 import type { LevelId } from './types/forecast.js';
@@ -67,8 +70,10 @@ export function App() {
   const modelRuns = useModelRuns();
   const road = useRoadStatus();
   const webcam = useWebcamStatus();
-  const [selectedLevelId, setSelectedLevelId] = useState<LevelId>('summit');
-  const [period, setPeriod] = useState<ForecastPeriod>('7d');
+  const preferences = useLocalPreferences();
+  const pwa = usePwaStatus();
+  const selectedLevelId = preferences.levelId;
+  const period = preferences.period;
   const storm = useMemo(
     () => (forecast.data ? findPrimaryStorm(forecast.data.levels) : null),
     [forecast.data],
@@ -169,6 +174,14 @@ export function App() {
         onRefresh={refreshAll}
       />
 
+      <PwaStatus
+        online={pwa.online}
+        standalone={pwa.standalone}
+        canInstall={pwa.canInstall}
+        ios={pwa.ios}
+        onInstall={pwa.install}
+      />
+
       <div className="mt-4">
         <WarningBanner warnings={warnings} />
       </div>
@@ -208,7 +221,7 @@ export function App() {
               key={level.level.id}
               level={level}
               selected={level.level.id === selectedLevel.level.id}
-              onSelect={() => setSelectedLevelId(level.level.id)}
+              onSelect={() => preferences.setLevelId(level.level.id)}
             />
           ))}
         </div>
@@ -217,7 +230,7 @@ export function App() {
       <StickyLevelSelector
         levels={forecast.data.levels}
         selectedId={selectedLevel.level.id}
-        onSelect={setSelectedLevelId}
+        onSelect={preferences.setLevelId}
       />
 
       {selectedHourlyLevel ? (
@@ -239,7 +252,7 @@ export function App() {
           <MountainProfile
             levels={forecast.data.levels}
             period={period}
-            onPeriodChange={setPeriod}
+            onPeriodChange={preferences.setPeriod}
           />
         </Suspense>
       </section>
@@ -271,7 +284,7 @@ export function App() {
 
       <details className="mt-5 rounded-2xl border border-white/8 bg-white/[0.018] p-4 sm:p-5">
         <summary className="min-h-11 cursor-pointer list-none py-2 text-sm font-semibold text-slate-200">
-          Fuentes, estado de modelos y metodología
+          Fuentes, estado de modelos, datos locales y metodología
         </summary>
         <section className="mt-3 grid gap-4 xl:grid-cols-[1fr_1.08fr]" aria-label="Fuentes y metodología">
           <Suspense fallback={<SectionSkeleton />}>
@@ -280,6 +293,9 @@ export function App() {
           <Suspense fallback={<SectionSkeleton />}>
             <ForecastMethodology />
           </Suspense>
+          <div className="xl:col-span-2">
+            <LocalDataSettings />
+          </div>
         </section>
       </details>
 
