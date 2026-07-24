@@ -4,14 +4,16 @@ import type {
   LevelId,
   ModelId,
 } from '../../types/forecast.js';
-import type { StormEvent } from './storm.js';
 import { round, sumNullable } from './math.js';
+import type { StormEvent } from './storm.js';
 
 export const FORECAST_HISTORY_KEY = 'las-lenas:forecast-history:v1';
 const MAX_SNAPSHOTS = 30;
 const MAX_AGE_MS = 45 * 24 * 60 * 60 * 1000;
 
 export interface ForecastSnapshotLevel {
+  firstDayDate: string | null;
+  firstDayCm: number | null;
   hours72: number | null;
   days7: number | null;
   modelDays7: Partial<Record<ModelId, number | null>>;
@@ -37,6 +39,13 @@ export interface ForecastTrend {
   delta: number | null;
   direction: 'up' | 'down' | 'flat' | 'unknown';
   points: Array<{ updatedAt: string; value: number }>;
+}
+
+export interface ForecastVerification {
+  date: string;
+  forecastCm: number;
+  observedCm: number;
+  differenceCm: number;
 }
 
 function modelTotal(
@@ -65,10 +74,13 @@ export function buildForecastSnapshot(
   const levels = Object.fromEntries(
     levelIds.map((levelId) => {
       const forecastLevel = forecast.levels.find((item) => item.level.id === levelId);
+      const firstDay = forecastLevel?.daily[0];
       const observed = currentSnow?.zones.find((zone) => zone.zone === levelId);
       return [
         levelId,
         {
+          firstDayDate: firstDay?.date ?? null,
+          firstDayCm: firstDay?.snowfallMedianCm ?? null,
           hours72: forecastLevel?.totals.hours72 ?? null,
           days7: forecastLevel?.totals.days7 ?? null,
           modelDays7: {
@@ -134,6 +146,33 @@ export function forecastTrend(
     delta === null ? 'unknown' : delta > 0.5 ? 'up' : delta < -0.5 ? 'down' : 'flat';
 
   return { current, previous, delta, direction, points };
+}
+
+export function forecastVerification(
+  history: ForecastSnapshot[],
+  levelId: LevelId,
+): ForecastVerification | null {
+  const latest = history.at(-1);
+  const observed = latest?.levels[levelId]?.observedNewSnow24hCm ?? null;
+  const targetDate = latest?.levels[levelId]?.firstDayDate ?? null;
+  if (observed === null || targetDate === null) return null;
+
+  const prior = [...history]
+    .slice(0, -1)
+    .reverse()
+    .find((snapshot) => {
+      const level = snapshot.levels[levelId];
+      return level?.firstDayDate === targetDate && level.firstDayCm !== null;
+    });
+  const forecastCm = prior?.levels[levelId]?.firstDayCm ?? null;
+  if (forecastCm === null) return null;
+
+  return {
+    date: targetDate,
+    forecastCm,
+    observedCm: observed,
+    differenceCm: round(observed - forecastCm) ?? 0,
+  };
 }
 
 export function loadForecastHistory(storage: Storage | null): ForecastSnapshot[] {
