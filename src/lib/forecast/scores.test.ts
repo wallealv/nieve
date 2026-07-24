@@ -35,13 +35,20 @@ describe('scoreWindow', () => {
     expect(result.powder.score).toBeLessThanOrEqual(100);
     expect(result.piste.score).toBeGreaterThanOrEqual(0);
     expect(result.piste.score).toBeLessThanOrEqual(100);
+    expect(result.freeride.status).toBe('scored');
+    if (result.freeride.score === null) throw new Error('Expected a scored freeride result');
     expect(result.freeride.score).toBeGreaterThanOrEqual(0);
     expect(result.freeride.score).toBeLessThanOrEqual(100);
     expect(result.powder.positive.length).toBeGreaterThan(0);
   });
 
   test('penalizes rain and poor visibility for piste', () => {
-    const good = scoreWindow(window(), { observedDepthCm: 40, offPisteStatus: 'Abierto', avalancheRisk: 2, liftsOpenRatio: 1 });
+    const good = scoreWindow(window(), {
+      observedDepthCm: 40,
+      offPisteStatus: 'Abierto',
+      avalancheRisk: 2,
+      liftsOpenRatio: 1,
+    });
     const bad = scoreWindow(window({ rainMm: 6, phase: 'mixed', visibilityMinM: 400 }), {
       observedDepthCm: 40,
       offPisteStatus: 'Abierto',
@@ -75,6 +82,8 @@ describe('scoreWindow', () => {
       avalancheRisk: 5,
       liftsOpenRatio: 1,
     });
+    expect(result.freeride.status).toBe('scored');
+    if (result.freeride.score === null) throw new Error('Expected a scored freeride result');
     expect(result.freeride.score).toBeLessThanOrEqual(20);
     expect(result.freeride.negative.join(' ')).toMatch(/avalancha/i);
   });
