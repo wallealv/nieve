@@ -21,6 +21,7 @@ export function usePwaStatus() {
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [standalone, setStandalone] = useState(matchesStandalone);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
     const onOnline = () => setOnline(true);
@@ -30,17 +31,20 @@ export function usePwaStatus() {
       setInstallPrompt(event as BeforeInstallPromptEvent);
     };
     const onDisplayMode = () => setStandalone(matchesStandalone());
+    const onUpdate = () => setUpdateAvailable(true);
     const media = typeof window.matchMedia === 'function'
       ? window.matchMedia('(display-mode: standalone)')
       : null;
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     window.addEventListener('beforeinstallprompt', onPrompt);
+    window.addEventListener('snow-monitor:update-available', onUpdate);
     media?.addEventListener?.('change', onDisplayMode);
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('beforeinstallprompt', onPrompt);
+      window.removeEventListener('snow-monitor:update-available', onUpdate);
       media?.removeEventListener?.('change', onDisplayMode);
     };
   }, []);
@@ -53,6 +57,7 @@ export function usePwaStatus() {
     return choice.outcome === 'accepted';
   };
 
+  const reload = () => window.location.reload();
   const ios = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
-  return { online, standalone, canInstall: Boolean(installPrompt), ios, install };
+  return { online, standalone, canInstall: Boolean(installPrompt), ios, install, updateAvailable, reload };
 }
