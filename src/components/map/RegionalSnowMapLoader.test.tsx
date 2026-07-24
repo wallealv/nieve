@@ -42,7 +42,8 @@ describe('RegionalSnowMapLoader', () => {
     await user.click(screen.getByRole('button', { name: /Abrir mapa regional/i }));
     expect(await screen.findByRole('heading', { name: /Mapa regional de nieve/i })).toBeInTheDocument();
     expect(screen.getByText('20 cm')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '72 h' }));
+    const periodButtons = screen.getAllByRole('button', { name: '72 h' });
+    await user.click(periodButtons.at(-1)!);
     expect(screen.getByText('50 cm')).toBeInTheDocument();
   });
 });
