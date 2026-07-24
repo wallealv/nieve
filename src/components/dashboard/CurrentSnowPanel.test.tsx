@@ -154,10 +154,11 @@ describe('CurrentSnowPanel', () => {
     expect(within(mid).getByText('Sin dato')).toBeInTheDocument();
     expect(within(mid).getByText(/Ninguna fuente publicó/i)).toBeInTheDocument();
 
-    expect(screen.getByRole('link', { name: /Las Leñas oficial/i })).toHaveAttribute(
-      'href',
-      expect.stringContaining('laslenas.com'),
-    );
+    const officialLinks = screen.getAllByRole('link', { name: /Las Leñas oficial/i });
+    expect(officialLinks).toHaveLength(2);
+    officialLinks.forEach((link) => {
+      expect(link).toHaveAttribute('href', expect.stringContaining('laslenas.com'));
+    });
     expect(screen.getByText('HTTP 403')).toBeInTheDocument();
   });
 
