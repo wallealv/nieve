@@ -21,6 +21,7 @@ import { WarningBanner } from './components/dashboard/WarningBanner.js';
 import { WebcamCard } from './components/dashboard/WebcamCard.js';
 import { RegionalSnowMapLoader } from './components/map/RegionalSnowMapLoader.js';
 import { useAlertSettings } from './hooks/useAlertSettings.js';
+import { useClimatology } from './hooks/useClimatology.js';
 import { useCurrentSnow } from './hooks/useCurrentSnow.js';
 import { useFavorites } from './hooks/useFavorites.js';
 import { useForecast } from './hooks/useForecast.js';
@@ -64,6 +65,7 @@ export function App() {
   const road = useRoadStatus();
   const webcam = useWebcamStatus();
   const regional = useRegionalForecast();
+  const climatology = useClimatology();
   const favorites = useFavorites();
   const preferences = useLocalPreferences();
   const pwa = usePwaStatus();
@@ -142,6 +144,9 @@ export function App() {
     ...(regional.isError
       ? [regional.error instanceof Error ? `Comparador regional: ${regional.error.message}` : 'La comparación regional no está disponible.']
       : []),
+    ...(climatology.isError
+      ? [climatology.error instanceof Error ? `Referencia histórica: ${climatology.error.message}` : 'La referencia histórica no está disponible.']
+      : []),
   ];
 
   const refreshAll = () => {
@@ -152,11 +157,12 @@ export function App() {
     void road.refetch();
     void webcam.refetch();
     void regional.refetch();
+    void climatology.refetch();
   };
 
   const isRefreshing =
     forecast.isFetching || currentSnow.isFetching || hourly.isFetching || modelRuns.isFetching ||
-    road.isFetching || webcam.isFetching || regional.isFetching;
+    road.isFetching || webcam.isFetching || regional.isFetching || climatology.isFetching;
 
   return (
     <main className="app-shell">
@@ -234,7 +240,12 @@ export function App() {
       ) : null}
 
       <section className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_.85fr]" aria-label="Historial y cámara">
-        <ForecastHistory history={history} levelId={selectedLevel.level.id} />
+        <ForecastHistory
+          history={history}
+          levelId={selectedLevel.level.id}
+          current7dCm={selectedLevel.totals.days7}
+          climatology={climatology.data}
+        />
         <WebcamCard data={webcam.data} isPending={webcam.isPending} error={webcam.error instanceof Error ? webcam.error : null} />
       </section>
 
