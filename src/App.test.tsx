@@ -52,6 +52,18 @@ vi.mock('./hooks/useModelRuns.js', () => ({ useModelRuns: () => useModelRunsMock
 vi.mock('./hooks/useRoadStatus.js', () => ({ useRoadStatus: () => useRoadStatusMock() }));
 vi.mock('./hooks/useWebcamStatus.js', () => ({ useWebcamStatus: () => useWebcamStatusMock() }));
 vi.mock('./hooks/useRegionalForecast.js', () => ({ useRegionalForecast: () => useRegionalForecastMock() }));
+vi.mock('./hooks/useOffPisteChange.js', () => ({ useOffPisteChange: () => null }));
+vi.mock('./hooks/usePwaStatus.js', () => ({
+  usePwaStatus: () => ({
+    online: true,
+    standalone: true,
+    canInstall: false,
+    ios: false,
+    versionAvailable: false,
+    install: vi.fn().mockResolvedValue(false),
+    update: vi.fn(),
+  }),
+}));
 vi.mock('./components/map/RegionalSnowMapLoader.js', () => ({
   RegionalSnowMapLoader: () => <div>regional-map-loader</div>,
 }));
@@ -78,6 +90,7 @@ function secondaryQuery(refetch: ReturnType<typeof vi.fn>) {
     isFetching: false,
     error: null,
     refetch,
+    change: null,
   };
 }
 
