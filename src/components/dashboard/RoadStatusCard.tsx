@@ -1,4 +1,5 @@
 import { AlertTriangle, ExternalLink, LoaderCircle, Route, Snowflake } from 'lucide-react';
+import type { RoadStatusChange } from '../../lib/road/history.js';
 import type { RoadState, RoadStatus } from '../../types/road.js';
 import { Card } from '../ui/Card.js';
 
@@ -15,10 +16,12 @@ export function RoadStatusCard({
   data,
   isPending,
   error,
+  change = null,
 }: {
   data: RoadStatus | undefined;
   isPending: boolean;
   error: Error | null;
+  change?: RoadStatusChange | null;
 }) {
   return (
     <Card className="mt-5 p-5 sm:p-6">
@@ -54,6 +57,13 @@ export function RoadStatusCard({
           </a>
         ) : null}
       </div>
+
+      {change ? (
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-300/20 bg-rose-300/[0.07] p-3 text-sm leading-6 text-rose-100" role="status">
+          <AlertTriangle className="mt-1 size-4 shrink-0" aria-hidden="true" />
+          <p><strong>Cambió desde la última consulta:</strong> {change.message}</p>
+        </div>
+      ) : null}
 
       {data ? (
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
