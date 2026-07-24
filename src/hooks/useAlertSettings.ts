@@ -4,6 +4,7 @@ import {
   evaluateAlert,
   type AlertSettings,
 } from '../lib/forecast/alerts.js';
+import { getBrowserStorageAdapter } from '../lib/persistence/storage.js';
 import type { ForecastResponse } from '../types/forecast.js';
 
 const SETTINGS_KEY = 'las-lenas:alert-settings:v1';
@@ -32,12 +33,12 @@ function loadSettings(): AlertSettings {
 
 function persistSettings(settings: AlertSettings): void {
   const storage = browserStorage();
-  if (!storage) return;
   try {
-    storage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    storage?.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {
     // Local persistence is optional.
   }
+  void getBrowserStorageAdapter()?.set('alert-settings', settings);
 }
 
 export function useAlertSettings(forecast: ForecastResponse | undefined) {
@@ -83,6 +84,7 @@ export function useAlertSettings(forecast: ForecastResponse | undefined) {
     } catch {
       // Notification still works without deduplication persistence.
     }
+    void getBrowserStorageAdapter()?.set('last-alert', match.fingerprint);
   }, [match, settings.notificationsEnabled]);
 
   const notificationPermission: NotificationPermission | 'unsupported' =
