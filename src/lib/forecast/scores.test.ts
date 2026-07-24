@@ -55,6 +55,9 @@ describe('scoreWindow', () => {
       avalancheRisk: 2,
       liftsOpenRatio: 1,
     });
+    if (good.piste.score === null || bad.piste.score === null) {
+      throw new Error('Expected scored piste results');
+    }
     expect(bad.piste.score).toBeLessThan(good.piste.score);
     expect(bad.piste.negative.length).toBeGreaterThan(0);
   });
