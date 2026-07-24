@@ -34,6 +34,18 @@ function serverlessDevApi(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), serverlessDevApi()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('recharts') || id.includes('d3-')) return 'charts-vendor';
+          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor';
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
