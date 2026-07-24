@@ -34,7 +34,10 @@ function compactTooltip(unit: string) {
       fontSize: 12,
     },
     labelFormatter: (label: string) => formatDay(label),
-    formatter: (value: number | string) => [`${value}${unit}`, ''],
+    formatter: (value: unknown): [string, string] => [
+      value == null ? '—' : `${String(value)}${unit}`,
+      '',
+    ],
   };
 }
 
