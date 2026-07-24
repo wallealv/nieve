@@ -7,6 +7,7 @@ import {
   loadForecastHistory,
   saveForecastHistory,
 } from '../lib/forecast/history.js';
+import { getBrowserStorageAdapter } from '../lib/persistence/storage.js';
 import type { StormEvent } from '../lib/forecast/storm.js';
 
 function browserStorage(): Storage | null {
@@ -39,6 +40,7 @@ export function useForecastHistory(
   useEffect(() => {
     if (!forecast) return;
     saveForecastHistory(browserStorage(), history);
+    void getBrowserStorageAdapter()?.set('forecast-history', history);
   }, [forecast, history]);
 
   return history;
