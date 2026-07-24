@@ -11,7 +11,7 @@ describe('evaluateAlert', () => {
     const forecast = makeForecastFixture();
     const settings: AlertSettings = {
       ...DEFAULT_ALERT_SETTINGS,
-      threshold72hCm: 15,
+      threshold72hCm: 100,
       threshold7dCm: 25,
       zone: 'summit',
       minConfidence: 'Media',
