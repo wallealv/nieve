@@ -45,4 +45,23 @@ describe('official operations parsers', () => {
       officialNote: 'ingresar unicamente con guia habilitado.',
     });
   });
+
+  test('does not turn the avalanche table heading into an official observation', () => {
+    const html = `
+      <section>
+        <p>Estado Cerrado</p>
+        <p>Riesgo de avalancha 3</p>
+        <p>Observaciones</p>
+        <p>Índice</p>
+        <p>Estabilidad</p>
+        <p>Probabilidad</p>
+      </section>
+    `;
+
+    expect(parseOffPiste(html)).toEqual({
+      avalancheRisk: 3,
+      offPisteStatus: 'Cerrado',
+      officialNote: null,
+    });
+  });
 });
