@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ForecastResponse } from '../types/forecast.js';
 import {
   DEFAULT_ALERT_SETTINGS,
   evaluateAlert,
   type AlertSettings,
 } from '../lib/forecast/alerts.js';
+import type { ForecastResponse } from '../types/forecast.js';
 
 const SETTINGS_KEY = 'las-lenas:alert-settings:v1';
 const LAST_NOTIFICATION_KEY = 'las-lenas:last-alert-notification:v1';
@@ -85,12 +85,14 @@ export function useAlertSettings(forecast: ForecastResponse | undefined) {
     }
   }, [match, settings.notificationsEnabled]);
 
+  const notificationPermission: NotificationPermission | 'unsupported' =
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission;
+
   return {
     settings,
     setSettings,
     match,
     requestNotifications,
-    notificationPermission:
-      typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
+    notificationPermission,
   };
 }
