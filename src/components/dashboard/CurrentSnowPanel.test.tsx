@@ -159,7 +159,7 @@ describe('CurrentSnowPanel', () => {
     officialLinks.forEach((link) => {
       expect(link).toHaveAttribute('href', expect.stringContaining('laslenas.com'));
     });
-    expect(screen.getByText('HTTP 403')).toBeInTheDocument();
+    expect(screen.getAllByText('HTTP 403')).toHaveLength(2);
   });
 
   test('keeps a stale successful response visible after a refresh error', () => {
