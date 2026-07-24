@@ -11,6 +11,7 @@ import { LoadingDashboard } from './components/dashboard/LoadingDashboard.js';
 import { LocalDataSettings } from './components/dashboard/LocalDataSettings.js';
 import { ModelRunEvolution } from './components/dashboard/ModelRunEvolution.js';
 import { PwaStatus } from './components/dashboard/PwaStatus.js';
+import { RegionalComparator } from './components/dashboard/RegionalComparator.js';
 import { RoadStatusCard } from './components/dashboard/RoadStatusCard.js';
 import { SectionSkeleton } from './components/dashboard/SectionSkeleton.js';
 import { SnowPhaseQuality } from './components/dashboard/SnowPhaseQuality.js';
@@ -18,14 +19,17 @@ import { StickyLevelSelector } from './components/dashboard/StickyLevelSelector.
 import { StormSummary } from './components/dashboard/StormSummary.js';
 import { WarningBanner } from './components/dashboard/WarningBanner.js';
 import { WebcamCard } from './components/dashboard/WebcamCard.js';
+import { RegionalSnowMapLoader } from './components/map/RegionalSnowMapLoader.js';
 import { useAlertSettings } from './hooks/useAlertSettings.js';
 import { useCurrentSnow } from './hooks/useCurrentSnow.js';
+import { useFavorites } from './hooks/useFavorites.js';
 import { useForecast } from './hooks/useForecast.js';
 import { useForecastHistory } from './hooks/useForecastHistory.js';
 import { useHourlyForecast } from './hooks/useHourlyForecast.js';
 import { useLocalPreferences } from './hooks/useLocalPreferences.js';
 import { useModelRuns } from './hooks/useModelRuns.js';
 import { usePwaStatus } from './hooks/usePwaStatus.js';
+import { useRegionalForecast } from './hooks/useRegionalForecast.js';
 import { useRoadStatus } from './hooks/useRoadStatus.js';
 import { useWebcamStatus } from './hooks/useWebcamStatus.js';
 import { findPrimaryStorm } from './lib/forecast/storm.js';
@@ -70,6 +74,8 @@ export function App() {
   const modelRuns = useModelRuns();
   const road = useRoadStatus();
   const webcam = useWebcamStatus();
+  const regional = useRegionalForecast();
+  const favorites = useFavorites();
   const preferences = useLocalPreferences();
   const pwa = usePwaStatus();
   const selectedLevelId = preferences.levelId;
@@ -126,6 +132,7 @@ export function App() {
     ...forecast.data.warnings,
     ...(hourly.data?.warnings ?? []),
     ...(modelRuns.data?.warnings ?? []),
+    ...(regional.data?.warnings ?? []),
     ...(forecast.isError
       ? [
           forecast.error instanceof Error
@@ -147,6 +154,13 @@ export function App() {
             : 'Las corridas anteriores no están disponibles.',
         ]
       : []),
+    ...(regional.isError
+      ? [
+          regional.error instanceof Error
+            ? `Comparador regional: ${regional.error.message}`
+            : 'La comparación regional no está disponible.',
+        ]
+      : []),
   ];
 
   const refreshAll = () => {
@@ -156,6 +170,7 @@ export function App() {
     void modelRuns.refetch();
     void road.refetch();
     void webcam.refetch();
+    void regional.refetch();
   };
 
   const isRefreshing =
@@ -164,7 +179,8 @@ export function App() {
     hourly.isFetching ||
     modelRuns.isFetching ||
     road.isFetching ||
-    webcam.isFetching;
+    webcam.isFetching ||
+    regional.isFetching;
 
   return (
     <main className="app-shell">
@@ -271,6 +287,22 @@ export function App() {
           error={webcam.error instanceof Error ? webcam.error : null}
         />
       </section>
+
+      {regional.data ? (
+        <section className="mt-5" aria-label="Comparación regional de centros">
+          <RegionalComparator
+            data={regional.data}
+            favorites={favorites.favorites}
+            onToggleFavorite={favorites.toggleFavorite}
+          />
+        </section>
+      ) : regional.isPending ? (
+        <section className="mt-5" aria-label="Cargando comparación regional">
+          <SectionSkeleton label="Comparando centros de Argentina y Chile…" />
+        </section>
+      ) : null}
+
+      <RegionalSnowMapLoader />
 
       <section className="mt-5" aria-label="Alertas locales">
         <AlertSettings
