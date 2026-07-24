@@ -11,6 +11,7 @@ const modelRunsRefetch = vi.fn();
 const roadRefetch = vi.fn();
 const webcamRefetch = vi.fn();
 const regionalRefetch = vi.fn();
+const climatologyRefetch = vi.fn();
 const useForecastMock = vi.fn();
 const useCurrentSnowMock = vi.fn();
 const useHourlyForecastMock = vi.fn();
@@ -18,6 +19,7 @@ const useModelRunsMock = vi.fn();
 const useRoadStatusMock = vi.fn();
 const useWebcamStatusMock = vi.fn();
 const useRegionalForecastMock = vi.fn();
+const useClimatologyMock = vi.fn();
 
 const currentSnowData: CurrentSnowResponse = {
   resort: 'Las Leñas',
@@ -52,6 +54,7 @@ vi.mock('./hooks/useModelRuns.js', () => ({ useModelRuns: () => useModelRunsMock
 vi.mock('./hooks/useRoadStatus.js', () => ({ useRoadStatus: () => useRoadStatusMock() }));
 vi.mock('./hooks/useWebcamStatus.js', () => ({ useWebcamStatus: () => useWebcamStatusMock() }));
 vi.mock('./hooks/useRegionalForecast.js', () => ({ useRegionalForecast: () => useRegionalForecastMock() }));
+vi.mock('./hooks/useClimatology.js', () => ({ useClimatology: () => useClimatologyMock() }));
 vi.mock('./hooks/useOffPisteChange.js', () => ({ useOffPisteChange: () => null }));
 vi.mock('./hooks/usePwaStatus.js', () => ({
   usePwaStatus: () => ({
@@ -59,9 +62,9 @@ vi.mock('./hooks/usePwaStatus.js', () => ({
     standalone: true,
     canInstall: false,
     ios: false,
-    versionAvailable: false,
+    updateAvailable: false,
     install: vi.fn().mockResolvedValue(false),
-    update: vi.fn(),
+    reload: vi.fn(),
   }),
 }));
 vi.mock('./components/map/RegionalSnowMapLoader.js', () => ({
@@ -96,7 +99,16 @@ function secondaryQuery(refetch: ReturnType<typeof vi.fn>) {
 
 beforeEach(() => {
   localStorage.clear();
-  [forecastRefetch, currentSnowRefetch, hourlyRefetch, modelRunsRefetch, roadRefetch, webcamRefetch, regionalRefetch].forEach((mock) => mock.mockReset());
+  [
+    forecastRefetch,
+    currentSnowRefetch,
+    hourlyRefetch,
+    modelRunsRefetch,
+    roadRefetch,
+    webcamRefetch,
+    regionalRefetch,
+    climatologyRefetch,
+  ].forEach((mock) => mock.mockReset());
   useForecastMock.mockReturnValue({
     data: makeForecastFixture(), isPending: false, isError: false, isFetching: false,
     error: null, refetch: forecastRefetch,
@@ -110,6 +122,7 @@ beforeEach(() => {
   useRoadStatusMock.mockReturnValue(secondaryQuery(roadRefetch));
   useWebcamStatusMock.mockReturnValue(secondaryQuery(webcamRefetch));
   useRegionalForecastMock.mockReturnValue(secondaryQuery(regionalRefetch));
+  useClimatologyMock.mockReturnValue(secondaryQuery(climatologyRefetch));
 });
 
 test('renders storm, current snow and changes selected forecast level', async () => {
@@ -143,6 +156,7 @@ test('changes mountain profile period and refreshes all endpoints', async () => 
   expect(roadRefetch).toHaveBeenCalledTimes(1);
   expect(webcamRefetch).toHaveBeenCalledTimes(1);
   expect(regionalRefetch).toHaveBeenCalledTimes(1);
+  expect(climatologyRefetch).toHaveBeenCalledTimes(1);
 });
 
 test('keeps the last successful forecast visible when a refresh fails', () => {
