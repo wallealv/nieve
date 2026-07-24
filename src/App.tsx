@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ConditionsChart } from './components/charts/ConditionsChart.js';
 import { SnowForecastChart } from './components/charts/SnowForecastChart.js';
+import { CurrentSnowPanel } from './components/dashboard/CurrentSnowPanel.js';
 import { ErrorState } from './components/dashboard/ErrorState.js';
 import { ForecastMethodology } from './components/dashboard/ForecastMethodology.js';
 import { ForecastTable } from './components/dashboard/ForecastTable.js';
@@ -10,6 +11,7 @@ import { LoadingDashboard } from './components/dashboard/LoadingDashboard.js';
 import { ModelStatusList } from './components/dashboard/ModelStatusList.js';
 import { MountainProfile } from './components/dashboard/MountainProfile.js';
 import { WarningBanner } from './components/dashboard/WarningBanner.js';
+import { useCurrentSnow } from './hooks/useCurrentSnow.js';
 import { useForecast } from './hooks/useForecast.js';
 import {
   nextSnowEvent,
@@ -19,6 +21,7 @@ import type { LevelId } from './types/forecast.js';
 
 export function App() {
   const forecast = useForecast();
+  const currentSnow = useCurrentSnow();
   const [selectedLevelId, setSelectedLevelId] = useState<LevelId>('summit');
   const [period, setPeriod] = useState<ForecastPeriod>('7d');
 
@@ -47,25 +50,37 @@ export function App() {
       ]
     : forecast.data.warnings;
 
+  const refreshAll = () => {
+    void forecast.refetch();
+    void currentSnow.refetch();
+  };
+
   return (
     <main className="app-shell">
       <Header
         updatedAt={forecast.data.resort.updatedAt}
         event={snowEvent}
-        isRefreshing={forecast.isFetching}
-        onRefresh={() => void forecast.refetch()}
+        isRefreshing={forecast.isFetching || currentSnow.isFetching}
+        onRefresh={refreshAll}
       />
 
       <div className="mt-4">
         <WarningBanner warnings={warnings} />
       </div>
 
+      <CurrentSnowPanel
+        data={currentSnow.data}
+        isPending={currentSnow.isPending}
+        isFetching={currentSnow.isFetching}
+        error={currentSnow.error instanceof Error ? currentSnow.error : null}
+      />
+
       <section className="mt-5" aria-labelledby="levels-title">
         <div className="mb-3 flex items-end justify-between gap-4 px-1">
           <div>
-            <p className="eyebrow">Resumen por nivel</p>
+            <p className="eyebrow">Pronóstico por nivel</p>
             <h2 id="levels-title" className="mt-1 text-xl font-semibold tracking-tight text-white">
-              Elegí una cota para explorar el detalle
+              Elegí una cota para explorar la nieve futura
             </h2>
           </div>
           <p className="hidden text-xs text-slate-500 sm:block">
@@ -107,8 +122,8 @@ export function App() {
       </section>
 
       <footer className="px-2 pb-5 pt-8 text-center text-xs leading-5 text-slate-600">
-        Pronóstico estimativo basado en modelos numéricos. Verificá siempre el parte oficial,
-        el estado de medios y las condiciones de seguridad antes de subir.
+        Los espesores actuales son reportes de terceros y pueden diferir por hora, cota y método de medición.
+        El pronóstico es estimativo. Verificá siempre el parte oficial y las condiciones de seguridad antes de subir.
       </footer>
     </main>
   );
