@@ -8,16 +8,22 @@ import { Header } from './components/dashboard/Header.js';
 import { HourlyTimeline } from './components/dashboard/HourlyTimeline.js';
 import { LevelSummaryCard } from './components/dashboard/LevelSummaryCard.js';
 import { LoadingDashboard } from './components/dashboard/LoadingDashboard.js';
+import { ModelRunEvolution } from './components/dashboard/ModelRunEvolution.js';
+import { RoadStatusCard } from './components/dashboard/RoadStatusCard.js';
 import { SectionSkeleton } from './components/dashboard/SectionSkeleton.js';
 import { SnowPhaseQuality } from './components/dashboard/SnowPhaseQuality.js';
 import { StickyLevelSelector } from './components/dashboard/StickyLevelSelector.js';
 import { StormSummary } from './components/dashboard/StormSummary.js';
 import { WarningBanner } from './components/dashboard/WarningBanner.js';
+import { WebcamCard } from './components/dashboard/WebcamCard.js';
 import { useAlertSettings } from './hooks/useAlertSettings.js';
 import { useCurrentSnow } from './hooks/useCurrentSnow.js';
 import { useForecast } from './hooks/useForecast.js';
 import { useForecastHistory } from './hooks/useForecastHistory.js';
 import { useHourlyForecast } from './hooks/useHourlyForecast.js';
+import { useModelRuns } from './hooks/useModelRuns.js';
+import { useRoadStatus } from './hooks/useRoadStatus.js';
+import { useWebcamStatus } from './hooks/useWebcamStatus.js';
 import type { ForecastPeriod } from './lib/forecast/presentation.js';
 import { findPrimaryStorm } from './lib/forecast/storm.js';
 import { findBestWindows } from './lib/forecast/windows.js';
@@ -58,6 +64,9 @@ export function App() {
   const forecast = useForecast();
   const currentSnow = useCurrentSnow();
   const hourly = useHourlyForecast();
+  const modelRuns = useModelRuns();
+  const road = useRoadStatus();
+  const webcam = useWebcamStatus();
   const [selectedLevelId, setSelectedLevelId] = useState<LevelId>('summit');
   const [period, setPeriod] = useState<ForecastPeriod>('7d');
   const storm = useMemo(
@@ -111,6 +120,7 @@ export function App() {
   const warnings = [
     ...forecast.data.warnings,
     ...(hourly.data?.warnings ?? []),
+    ...(modelRuns.data?.warnings ?? []),
     ...(forecast.isError
       ? [
           forecast.error instanceof Error
@@ -125,19 +135,37 @@ export function App() {
             : 'El pronóstico horario no está disponible.',
         ]
       : []),
+    ...(modelRuns.isError
+      ? [
+          modelRuns.error instanceof Error
+            ? `Corridas anteriores: ${modelRuns.error.message}`
+            : 'Las corridas anteriores no están disponibles.',
+        ]
+      : []),
   ];
 
   const refreshAll = () => {
     void forecast.refetch();
     void currentSnow.refetch();
     void hourly.refetch();
+    void modelRuns.refetch();
+    void road.refetch();
+    void webcam.refetch();
   };
+
+  const isRefreshing =
+    forecast.isFetching ||
+    currentSnow.isFetching ||
+    hourly.isFetching ||
+    modelRuns.isFetching ||
+    road.isFetching ||
+    webcam.isFetching;
 
   return (
     <main className="app-shell">
       <Header
         updatedAt={forecast.data.resort.updatedAt}
-        isRefreshing={forecast.isFetching || currentSnow.isFetching || hourly.isFetching}
+        isRefreshing={isRefreshing}
         onRefresh={refreshAll}
       />
 
@@ -146,6 +174,12 @@ export function App() {
       </div>
 
       <StormSummary event={storm} />
+
+      <RoadStatusCard
+        data={road.data}
+        isPending={road.isPending}
+        error={road.error instanceof Error ? road.error : null}
+      />
 
       <CurrentSnowPanel
         data={currentSnow.data}
@@ -210,8 +244,22 @@ export function App() {
         </Suspense>
       </section>
 
-      <section className="mt-5 grid gap-4 xl:grid-cols-2" aria-label="Historial y alertas">
+      {modelRuns.data ? (
+        <section className="mt-5" aria-label="Evolución de modelos">
+          <ModelRunEvolution data={modelRuns.data} levelId={selectedLevel.level.id} />
+        </section>
+      ) : null}
+
+      <section className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_.85fr]" aria-label="Historial y cámara">
         <ForecastHistory history={history} levelId={selectedLevel.level.id} />
+        <WebcamCard
+          data={webcam.data}
+          isPending={webcam.isPending}
+          error={webcam.error instanceof Error ? webcam.error : null}
+        />
+      </section>
+
+      <section className="mt-5" aria-label="Alertas locales">
         <AlertSettings
           settings={alerts.settings}
           match={alerts.match}
