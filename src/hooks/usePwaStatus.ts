@@ -5,14 +5,22 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+function matchesStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  const displayMode = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(display-mode: standalone)').matches
+    : false;
+  const iosStandalone =
+    typeof navigator !== 'undefined' &&
+    'standalone' in navigator &&
+    Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+  return displayMode || iosStandalone;
+}
+
 export function usePwaStatus() {
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [standalone, setStandalone] = useState(() =>
-    typeof window !== 'undefined' &&
-    (window.matchMedia('(display-mode: standalone)').matches ||
-      ('standalone' in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone))),
-  );
+  const [standalone, setStandalone] = useState(matchesStandalone);
 
   useEffect(() => {
     const onOnline = () => setOnline(true);
@@ -21,17 +29,19 @@ export function usePwaStatus() {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
     };
-    const onDisplayMode = () => setStandalone(window.matchMedia('(display-mode: standalone)').matches);
-    const media = window.matchMedia('(display-mode: standalone)');
+    const onDisplayMode = () => setStandalone(matchesStandalone());
+    const media = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(display-mode: standalone)')
+      : null;
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     window.addEventListener('beforeinstallprompt', onPrompt);
-    media.addEventListener?.('change', onDisplayMode);
+    media?.addEventListener?.('change', onDisplayMode);
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('beforeinstallprompt', onPrompt);
-      media.removeEventListener?.('change', onDisplayMode);
+      media?.removeEventListener?.('change', onDisplayMode);
     };
   }, []);
 
