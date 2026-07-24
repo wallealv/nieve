@@ -87,11 +87,17 @@ const data: CurrentSnowResponse = {
     },
   ],
   operations: {
-    liftsOpen: null,
-    liftsTotal: null,
+    liftsOpen: 8,
+    liftsConditional: 1,
+    liftsTotal: 12,
+    slopesOpen: 14,
+    slopesTotal: 29,
     slopesOpenKm: null,
     slopesTotalKm: null,
-    avalancheRisk: null,
+    avalancheRisk: 3,
+    offPisteStatus: 'Condicional',
+    officialNote: 'Ingresar únicamente con guía habilitado.',
+    fetchedAt: '2026-07-24T12:00:00Z',
   },
   sourceStatuses: [
     {
@@ -127,10 +133,13 @@ const data: CurrentSnowResponse = {
 };
 
 describe('CurrentSnowPanel', () => {
-  test('shows official, consensus, unavailable and source-detail states', () => {
+  test('shows official, operations, consensus, unavailable and source-detail states', () => {
     render(<CurrentSnowPanel data={data} isPending={false} isFetching={false} error={null} />);
 
     expect(screen.getByRole('heading', { name: /Nieve actual reportada/i })).toBeInTheDocument();
+    expect(screen.getByText('8/12')).toBeInTheDocument();
+    expect(screen.getByText('14/29')).toBeInTheDocument();
+    expect(screen.getByText('3/5')).toBeInTheDocument();
 
     const base = screen.getByLabelText('Nieve actual en Base');
     expect(within(base).getByText('28 cm')).toBeInTheDocument();
