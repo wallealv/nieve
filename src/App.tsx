@@ -1,12 +1,15 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { AlertSettings } from './components/dashboard/AlertSettings.js';
+import { BestWindows } from './components/dashboard/BestWindows.js';
 import { CurrentSnowPanel } from './components/dashboard/CurrentSnowPanel.js';
 import { ErrorState } from './components/dashboard/ErrorState.js';
 import { ForecastHistory } from './components/dashboard/ForecastHistory.js';
 import { Header } from './components/dashboard/Header.js';
+import { HourlyTimeline } from './components/dashboard/HourlyTimeline.js';
 import { LevelSummaryCard } from './components/dashboard/LevelSummaryCard.js';
 import { LoadingDashboard } from './components/dashboard/LoadingDashboard.js';
 import { SectionSkeleton } from './components/dashboard/SectionSkeleton.js';
+import { SnowPhaseQuality } from './components/dashboard/SnowPhaseQuality.js';
 import { StickyLevelSelector } from './components/dashboard/StickyLevelSelector.js';
 import { StormSummary } from './components/dashboard/StormSummary.js';
 import { WarningBanner } from './components/dashboard/WarningBanner.js';
@@ -14,8 +17,10 @@ import { useAlertSettings } from './hooks/useAlertSettings.js';
 import { useCurrentSnow } from './hooks/useCurrentSnow.js';
 import { useForecast } from './hooks/useForecast.js';
 import { useForecastHistory } from './hooks/useForecastHistory.js';
-import { findPrimaryStorm } from './lib/forecast/storm.js';
+import { useHourlyForecast } from './hooks/useHourlyForecast.js';
 import type { ForecastPeriod } from './lib/forecast/presentation.js';
+import { findPrimaryStorm } from './lib/forecast/storm.js';
+import { findBestWindows } from './lib/forecast/windows.js';
 import type { LevelId } from './types/forecast.js';
 
 const SnowForecastChart = lazy(() =>
@@ -52,6 +57,7 @@ const MountainProfile = lazy(() =>
 export function App() {
   const forecast = useForecast();
   const currentSnow = useCurrentSnow();
+  const hourly = useHourlyForecast();
   const [selectedLevelId, setSelectedLevelId] = useState<LevelId>('summit');
   const [period, setPeriod] = useState<ForecastPeriod>('7d');
   const storm = useMemo(
@@ -60,10 +66,37 @@ export function App() {
   );
   const history = useForecastHistory(forecast.data, currentSnow.data, storm);
   const alerts = useAlertSettings(forecast.data);
+  const bestWindows = useMemo(() => {
+    if (!hourly.data) return null;
+    const depthFor = (levelId: LevelId) =>
+      currentSnow.data?.zones.find((zone) => zone.zone === levelId)?.referenceDepthCm ?? null;
+    const operations = currentSnow.data?.operations;
+    const liftsOpenRatio =
+      operations?.liftsOpen !== null &&
+      operations?.liftsOpen !== undefined &&
+      operations.liftsTotal !== null &&
+      operations.liftsTotal > 0
+        ? operations.liftsOpen / operations.liftsTotal
+        : null;
+
+    return findBestWindows(hourly.data.levels, {
+      observedDepthByLevel: {
+        base: depthFor('base'),
+        mid: depthFor('mid'),
+        summit: depthFor('summit'),
+      },
+      offPisteStatus: operations?.offPisteStatus ?? null,
+      avalancheRisk: operations?.avalancheRisk ?? null,
+      liftsOpenRatio,
+    });
+  }, [currentSnow.data, hourly.data]);
 
   const selectedLevel =
     forecast.data?.levels.find((level) => level.level.id === selectedLevelId) ??
     forecast.data?.levels[0];
+  const selectedHourlyLevel =
+    hourly.data?.levels.find((level) => level.level.id === selectedLevelId) ??
+    hourly.data?.levels[0];
 
   if (forecast.isPending) return <LoadingDashboard />;
   if (!forecast.data || !selectedLevel) {
@@ -75,25 +108,36 @@ export function App() {
     );
   }
 
-  const warnings = forecast.isError
-    ? [
-        ...forecast.data.warnings,
-        forecast.error instanceof Error
-          ? forecast.error.message
-          : 'La última actualización falló; se muestran los datos anteriores.',
-      ]
-    : forecast.data.warnings;
+  const warnings = [
+    ...forecast.data.warnings,
+    ...(hourly.data?.warnings ?? []),
+    ...(forecast.isError
+      ? [
+          forecast.error instanceof Error
+            ? forecast.error.message
+            : 'La última actualización falló; se muestran los datos anteriores.',
+        ]
+      : []),
+    ...(hourly.isError
+      ? [
+          hourly.error instanceof Error
+            ? `Pronóstico horario: ${hourly.error.message}`
+            : 'El pronóstico horario no está disponible.',
+        ]
+      : []),
+  ];
 
   const refreshAll = () => {
     void forecast.refetch();
     void currentSnow.refetch();
+    void hourly.refetch();
   };
 
   return (
     <main className="app-shell">
       <Header
         updatedAt={forecast.data.resort.updatedAt}
-        isRefreshing={forecast.isFetching || currentSnow.isFetching}
+        isRefreshing={forecast.isFetching || currentSnow.isFetching || hourly.isFetching}
         onRefresh={refreshAll}
       />
 
@@ -109,6 +153,8 @@ export function App() {
         isFetching={currentSnow.isFetching}
         error={currentSnow.error instanceof Error ? currentSnow.error : null}
       />
+
+      {hourly.data ? <BestWindows summary={bestWindows} /> : null}
 
       <section className="mt-5" aria-labelledby="levels-title">
         <div className="mb-3 flex items-end justify-between gap-4 px-1">
@@ -139,6 +185,17 @@ export function App() {
         selectedId={selectedLevel.level.id}
         onSelect={setSelectedLevelId}
       />
+
+      {selectedHourlyLevel ? (
+        <section className="mt-5 grid gap-4 2xl:grid-cols-[1.4fr_1fr]" aria-label="Pronóstico horario y calidad">
+          <HourlyTimeline level={selectedHourlyLevel} />
+          <SnowPhaseQuality level={selectedHourlyLevel} />
+        </section>
+      ) : hourly.isPending ? (
+        <section className="mt-5" aria-label="Cargando pronóstico horario">
+          <SectionSkeleton label="Cargando pronóstico horario…" />
+        </section>
+      ) : null}
 
       <section className="mt-5 grid gap-4 2xl:grid-cols-[1.45fr_1fr]" aria-label="Pronóstico principal">
         <Suspense fallback={<SectionSkeleton label="Cargando gráfico de nieve…" />}>
