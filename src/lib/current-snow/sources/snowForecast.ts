@@ -7,6 +7,7 @@ import { classifyFreshness, parseReportedDate } from '../freshness.js';
 import { compactText, extractFirst, htmlToText, parseCm } from '../text.js';
 
 const SOURCE_URL = 'https://www.snow-forecast.com/resorts/Las-Lenas/snow-report';
+const TABLE_GAP = '[^\\d]{0,32}';
 
 function observation(
   zone: ObservationZone,
@@ -35,18 +36,22 @@ function observation(
   };
 }
 
+function depthPattern(label: string): RegExp {
+  return new RegExp(`${label}:?\\s*${TABLE_GAP}(\\d+(?:[.,]\\d+)?)\\s*cm`, 'i');
+}
+
 export function parseSnowForecast(
   html: string,
   fetchedAt: string,
 ): CurrentSnowSourceReport {
   const text = compactText(htmlToText(html));
   const upper = extractFirst(text, [
-    /Upper snow depth:\s*(\d+(?:[.,]\d+)?)\s*cm/i,
-    /Profundidad de Nieve Arriba:\s*(\d+(?:[.,]\d+)?)\s*cm/i,
+    depthPattern('Upper snow depth'),
+    depthPattern('Profundidad de Nieve Arriba'),
   ]);
   const lower = extractFirst(text, [
-    /Lower snow depth:\s*(\d+(?:[.,]\d+)?)\s*cm/i,
-    /Profundidad de Nieve abajo:\s*(\d+(?:[.,]\d+)?)\s*cm/i,
+    depthPattern('Lower snow depth'),
+    depthPattern('Profundidad de Nieve abajo'),
   ]);
   const dateLabel = extractFirst(text, [
     /snow depths:\s*updated\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i,
