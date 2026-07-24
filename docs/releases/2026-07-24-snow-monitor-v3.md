@@ -10,3 +10,5 @@ Release de producción de la versión local-first.
 - Referencia histórica modelada ERA5.
 
 Commit de implementación: `896cfcf91485bfcc81f705454e8da7ee554b3425`.
+
+Redeploy de producción solicitado el 24 de julio de 2026 después de restablecerse la cuota de Vercel.
