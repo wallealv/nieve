@@ -30,9 +30,9 @@ describe('parseRoadReport', () => {
     expect(parseRoadReport(html, SOURCE, '2026-07-24T12:00:00Z').status).toBe('closed');
   });
 
-  test('returns caution for a transitable route with precautions', () => {
+  test('returns extreme caution for explicit suma precaución wording', () => {
     const html = '<p>RP 222 (Los Molles – Las Leñas): transitable con suma precaución por máquinas viales.</p>';
-    expect(parseRoadReport(html, SOURCE, '2026-07-24T12:00:00Z').status).toBe('caution');
+    expect(parseRoadReport(html, SOURCE, '2026-07-24T12:00:00Z').status).toBe('extreme-caution');
   });
 
   test('does not treat unrelated route statements as RP 222 data', () => {
