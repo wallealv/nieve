@@ -50,7 +50,9 @@ export function parseOperationalRows(html: string): {
   const rows = [...html.matchAll(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi)]
     .map((match) => match[0])
     .filter((row) => (row.match(/<td\b/gi)?.length ?? 0) >= 2);
-  const states = rows.map((row) => stateFromSignal(rowSignal(row))).filter((state) => state !== 'unknown');
+  const states = rows
+    .map((row) => stateFromSignal(rowSignal(row)))
+    .filter((state) => state !== 'unknown');
 
   if (states.length === 0) {
     return { open: null, conditional: null, total: null };
@@ -63,6 +65,22 @@ export function parseOperationalRows(html: string): {
   };
 }
 
+function extractObservationNote(text: string): string | null {
+  const label = 'observaciones';
+  const start = text.indexOf(label);
+  if (start < 0) return null;
+
+  const remainder = text.slice(start + label.length);
+  const endPositions = [' indice', ' riesgo 1', ' estabilidad', ' probabilidad', ' indicaciones']
+    .map((marker) => remainder.indexOf(marker))
+    .filter((position) => position >= 0);
+  const end = endPositions.length ? Math.min(...endPositions) : remainder.length;
+  const note = remainder.slice(0, end).trim();
+
+  if (!note || /^sin observaciones\.?$/.test(note)) return null;
+  return note;
+}
+
 export function parseOffPiste(html: string): Pick<
   CurrentSnowOperations,
   'avalancheRisk' | 'offPisteStatus' | 'officialNote'
@@ -70,15 +88,13 @@ export function parseOffPiste(html: string): Pick<
   const text = textFromHtml(html);
   const riskMatch = text.match(/riesgo de avalancha\s*([1-5])/i);
   const statusMatch = text.match(/estado\s+(abierto|cerrado|condicional)/i);
-  const noteMatch = text.match(/observaciones\s+(.+?)(?:indice|riesgo 1|estabilidad|$)/i);
-  const note = noteMatch?.[1]?.trim();
 
   return {
     avalancheRisk: riskMatch ? Number(riskMatch[1]) : null,
     offPisteStatus: statusMatch?.[1]
       ? statusMatch[1].charAt(0).toUpperCase() + statusMatch[1].slice(1).toLowerCase()
       : null,
-    officialNote: note && note !== 'sin observaciones.' ? note : null,
+    officialNote: extractObservationNote(text),
   };
 }
 
