@@ -36,3 +36,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Capture diagnostics
+        if: failure()
+        run: npm run typecheck > ci-diagnostics.txt 2>&1 || true
+
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-snow-ci-diagnostics
+          path: ci-diagnostics.txt
+          if-no-files-found: error
