@@ -29,12 +29,12 @@ describe('current snow source adapters', () => {
     expect(report.observations[1]).toMatchObject({ depthCm: 25, newSnow24hCm: 1 });
   });
 
-  test('parses Snow-Forecast upper and lower reported depths but ignores forecast snowfall', () => {
+  test('parses Snow-Forecast table separators and ignores forecast snowfall', () => {
     const report = parseSnowForecast(
       `<main>
         <h2>Las Leñas snow depths: updated 20 July 2026</h2>
-        <p>Upper snow depth: 35 cm</p>
-        <p>Lower snow depth: 20 cm</p>
+        <p>Upper snow depth: | | 35 cm</p>
+        <p>Lower snow depth: | | 20 cm</p>
         <p>Our model predicted that 43cm of snow fell over 48 hours.</p>
         <p>Piste snow condition: Packed powder and groomed snow</p>
         <p>Next snowfall: 19 cm</p>
