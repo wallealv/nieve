@@ -29,43 +29,10 @@ jobs:
         run: npm run lint
 
       - name: Typecheck
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run typecheck 2>&1 | tee typecheck.log
-
-      - name: Upload typecheck diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: typecheck-diagnostics
-          path: typecheck.log
-          if-no-files-found: ignore
+        run: npm run typecheck
 
       - name: Test
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run test 2>&1 | tee test.log
-
-      - name: Upload test diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-diagnostics
-          path: test.log
-          if-no-files-found: ignore
+        run: npm run test
 
       - name: Build
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run build 2>&1 | tee build.log
-
-      - name: Upload build diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-diagnostics
-          path: build.log
-          if-no-files-found: ignore
+        run: npm run build
