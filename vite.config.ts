@@ -1,12 +1,12 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import type { Plugin } from 'vite';
+import type { Plugin, ViteDevServer } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { handleCurrentSnowRequest } from './api/current-snow.js';
 import { handleForecastRequest } from './api/forecast.js';
 
 function attachHandler(
-  server: Parameters<NonNullable<Plugin['configureServer']>>[0],
+  server: ViteDevServer,
   path: string,
   handler: (request: Request) => Promise<Response>,
 ) {
