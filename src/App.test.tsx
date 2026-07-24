@@ -6,8 +6,10 @@ import type { CurrentSnowResponse } from './types/currentSnow.js';
 
 const forecastRefetch = vi.fn();
 const currentSnowRefetch = vi.fn();
+const hourlyRefetch = vi.fn();
 const useForecastMock = vi.fn();
 const useCurrentSnowMock = vi.fn();
+const useHourlyForecastMock = vi.fn();
 
 const currentSnowData: CurrentSnowResponse = {
   resort: 'Las Leñas',
@@ -72,6 +74,10 @@ vi.mock('./hooks/useCurrentSnow.js', () => ({
   useCurrentSnow: () => useCurrentSnowMock(),
 }));
 
+vi.mock('./hooks/useHourlyForecast.js', () => ({
+  useHourlyForecast: () => useHourlyForecastMock(),
+}));
+
 vi.mock('./components/charts/SnowForecastChart.js', () => ({
   SnowForecastChart: ({ level }: { level: { level: { id: string } } }) => (
     <div>snow-chart-{level.level.id}</div>
@@ -90,6 +96,7 @@ beforeEach(() => {
   localStorage.clear();
   forecastRefetch.mockReset();
   currentSnowRefetch.mockReset();
+  hourlyRefetch.mockReset();
   useForecastMock.mockReturnValue({
     data: makeForecastFixture(),
     isPending: false,
@@ -105,6 +112,14 @@ beforeEach(() => {
     isFetching: false,
     error: null,
     refetch: currentSnowRefetch,
+  });
+  useHourlyForecastMock.mockReturnValue({
+    data: undefined,
+    isPending: false,
+    isError: false,
+    isFetching: false,
+    error: null,
+    refetch: hourlyRefetch,
   });
 });
 
@@ -122,7 +137,7 @@ test('renders storm, current snow and changes selected forecast level', async ()
   expect(await screen.findByText('snow-chart-base')).toBeInTheDocument();
 });
 
-test('changes mountain profile period and refreshes both endpoints', async () => {
+test('changes mountain profile period and refreshes all endpoints', async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -132,6 +147,7 @@ test('changes mountain profile period and refreshes both endpoints', async () =>
   await user.click(screen.getByRole('button', { name: /Actualizar ahora/i }));
   expect(forecastRefetch).toHaveBeenCalledTimes(1);
   expect(currentSnowRefetch).toHaveBeenCalledTimes(1);
+  expect(hourlyRefetch).toHaveBeenCalledTimes(1);
 });
 
 test('keeps the last successful forecast visible when a refresh fails', () => {
