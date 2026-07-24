@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { createRoadHandler } from './road.js';
+import { createRoadHandler } from '../../api/road.js';
 
 describe('road API', () => {
   test('returns cached official status', async () => {
@@ -10,16 +10,12 @@ describe('road API', () => {
   });
 
   test('rejects non-GET methods', async () => {
-    const response = await createRoadHandler(async () => ({}))(
-      new Request('https://example.com/api/road', { method: 'DELETE' }),
-    );
+    const response = await createRoadHandler(async () => ({}))(new Request('https://example.com/api/road', { method: 'DELETE' }));
     expect(response.status).toBe(405);
   });
 
   test('returns a structured 503', async () => {
-    const response = await createRoadHandler(async () => {
-      throw new Error('road source unavailable');
-    })(new Request('https://example.com/api/road'));
+    const response = await createRoadHandler(async () => { throw new Error('road source unavailable'); })(new Request('https://example.com/api/road'));
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: 'ROAD_STATUS_UNAVAILABLE', message: 'road source unavailable' });
   });

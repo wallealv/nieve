@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { createRegionalHandler } from './regional.js';
+import { createRegionalHandler } from '../../api/regional.js';
 
 describe('regional API', () => {
   test('returns a three-hour cached comparison', async () => {
@@ -10,17 +10,13 @@ describe('regional API', () => {
   });
 
   test('rejects non-GET methods', async () => {
-    const response = await createRegionalHandler(async () => ({}))(
-      new Request('https://example.com/api/regional', { method: 'POST' }),
-    );
+    const response = await createRegionalHandler(async () => ({}))(new Request('https://example.com/api/regional', { method: 'POST' }));
     expect(response.status).toBe(405);
     expect(response.headers.get('allow')).toBe('GET');
   });
 
   test('returns a structured failure', async () => {
-    const response = await createRegionalHandler(async () => {
-      throw new Error('regional unavailable');
-    })(new Request('https://example.com/api/regional'));
+    const response = await createRegionalHandler(async () => { throw new Error('regional unavailable'); })(new Request('https://example.com/api/regional'));
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: 'REGIONAL_FORECAST_UNAVAILABLE', message: 'regional unavailable' });
   });
