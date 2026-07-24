@@ -6,7 +6,8 @@
   "git": {
     "deploymentEnabled": {
       "feat/snow-monitor-v2": false,
-      "fix/off-piste-observation": false
+      "fix/off-piste-observation": false,
+      "feat/snow-monitor-v3": false
     }
   }
 }

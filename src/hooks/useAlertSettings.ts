@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   DEFAULT_ALERT_SETTINGS,
   evaluateAlert,
+  type AlertContext,
   type AlertSettings,
 } from '../lib/forecast/alerts.js';
+import { getBrowserStorageAdapter } from '../lib/persistence/storage.js';
 import type { ForecastResponse } from '../types/forecast.js';
 
 const SETTINGS_KEY = 'las-lenas:alert-settings:v1';
@@ -32,19 +34,22 @@ function loadSettings(): AlertSettings {
 
 function persistSettings(settings: AlertSettings): void {
   const storage = browserStorage();
-  if (!storage) return;
   try {
-    storage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    storage?.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {
     // Local persistence is optional.
   }
+  void getBrowserStorageAdapter()?.set('alert-settings', settings);
 }
 
-export function useAlertSettings(forecast: ForecastResponse | undefined) {
+export function useAlertSettings(
+  forecast: ForecastResponse | undefined,
+  context: AlertContext = {},
+) {
   const [settings, setSettingsState] = useState<AlertSettings>(loadSettings);
   const match = useMemo(
-    () => (forecast ? evaluateAlert(forecast, settings) : null),
-    [forecast, settings],
+    () => (forecast ? evaluateAlert(forecast, settings, context) : null),
+    [context, forecast, settings],
   );
 
   const setSettings = (next: AlertSettings) => {
@@ -74,7 +79,7 @@ export function useAlertSettings(forecast: ForecastResponse | undefined) {
     const previous = storage?.getItem(LAST_NOTIFICATION_KEY);
     if (previous === match.fingerprint) return;
 
-    new Notification('Alerta de nieve en Las Leñas', {
+    new Notification('Alerta de Las Leñas', {
       body: match.message,
       tag: match.fingerprint,
     });
@@ -83,6 +88,7 @@ export function useAlertSettings(forecast: ForecastResponse | undefined) {
     } catch {
       // Notification still works without deduplication persistence.
     }
+    void getBrowserStorageAdapter()?.set('last-alert', match.fingerprint);
   }, [match, settings.notificationsEnabled]);
 
   const notificationPermission: NotificationPermission | 'unsupported' =

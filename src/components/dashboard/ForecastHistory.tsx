@@ -1,10 +1,11 @@
-import { Clock3, TrendingDown, TrendingUp } from 'lucide-react';
+import { Clock3, History, TrendingDown, TrendingUp } from 'lucide-react';
 import {
   forecastTrend,
   forecastVerification,
   type ForecastSnapshot,
 } from '../../lib/forecast/history.js';
 import { formatCm, formatDateTime } from '../../lib/format.js';
+import type { ClimatologyResponse } from '../../types/climatology.js';
 import type { LevelId } from '../../types/forecast.js';
 import { Badge } from '../ui/Badge.js';
 import { Card } from '../ui/Card.js';
@@ -15,16 +16,32 @@ const LEVEL_LABELS: Record<LevelId, string> = {
   summit: 'Alta montaña',
 };
 
+function comparisonLabel(deltaCm: number): string {
+  if (Math.abs(deltaCm) < 2) return 'cerca del promedio histórico modelado';
+  return deltaCm > 0
+    ? `${formatCm(deltaCm, 1)} por encima del promedio histórico modelado`
+    : `${formatCm(Math.abs(deltaCm), 1)} por debajo del promedio histórico modelado`;
+}
+
 export function ForecastHistory({
   history,
   levelId,
+  current7dCm,
+  climatology,
 }: {
   history: ForecastSnapshot[];
   levelId: LevelId;
+  current7dCm: number | null;
+  climatology: ClimatologyResponse | undefined;
 }) {
   const trend = forecastTrend(history, levelId);
   const verification = forecastVerification(history, levelId);
   const maxValue = Math.max(1, ...trend.points.map((point) => point.value));
+  const historical = climatology?.levels.find((level) => level.levelId === levelId);
+  const historicalDelta =
+    current7dCm !== null && historical?.average7dCm !== null && historical?.average7dCm !== undefined
+      ? current7dCm - historical.average7dCm
+      : null;
 
   return (
     <Card className="p-5 sm:p-6">
@@ -88,6 +105,23 @@ export function ForecastHistory({
           Acumulado actual a 7 días: {formatCm(trend.current, 1)}.
         </p>
       </div>
+
+      {historical && historical.sampleYears > 0 ? (
+        <div className="mt-4 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.035] p-4 text-sm">
+          <div className="flex items-center gap-2 text-slate-200">
+            <History className="size-4 text-cyan-200" aria-hidden="true" />
+            Referencia histórica modelada para esta semana del año
+          </div>
+          <p className="mt-2 leading-6 text-slate-400">
+            Pronóstico actual: {formatCm(current7dCm, 1)}. Promedio de {historical.sampleYears} temporadas:
+            {' '}{formatCm(historical.average7dCm, 1)}; mediana {formatCm(historical.median7dCm, 1)}.
+            {historicalDelta !== null ? ` Está ${comparisonLabel(historicalDelta)}.` : ''}
+          </p>
+          <p className="mt-1 text-xs text-slate-600">
+            Muestra modelada: {formatCm(historical.min7dCm, 1)}–{formatCm(historical.max7dCm, 1)}. No es espesor medido ni reemplaza el parte oficial.
+          </p>
+        </div>
+      ) : null}
 
       {verification ? (
         <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.025] p-4 text-sm">
