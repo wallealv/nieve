@@ -38,11 +38,11 @@ jobs:
         run: npm run build
 
       - name: Package deployment source
-        run: tar --exclude=.git --exclude=node_modules -czf snow-monitor-v3-source.tgz .
+        run: tar --exclude=.git --exclude=node_modules -czf /tmp/snow-monitor-v3-source.tgz .
 
       - name: Upload deployment source
         uses: actions/upload-artifact@v4
         with:
           name: snow-monitor-v3-source
-          path: snow-monitor-v3-source.tgz
+          path: /tmp/snow-monitor-v3-source.tgz
           retention-days: 1
