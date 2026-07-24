@@ -26,18 +26,18 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Lint
-        run: npm run lint > lint.log 2>&1
+        run: npm run lint
 
-      - name: Upload lint diagnostics
+      - name: Typecheck
+        run: npm run typecheck > typecheck.log 2>&1
+
+      - name: Upload typecheck diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: lint-diagnostics
-          path: lint.log
+          name: typecheck-diagnostics
+          path: typecheck.log
           retention-days: 1
-
-      - name: Typecheck
-        run: npm run typecheck
 
       - name: Test
         run: npm run test
