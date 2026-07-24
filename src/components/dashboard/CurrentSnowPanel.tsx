@@ -1,15 +1,16 @@
 import { AlertTriangle, Mountain, Snowflake } from 'lucide-react';
+import { formatCm, formatDateTime } from '../../lib/format.js';
 import type {
   CurrentSnowReferenceKind,
   CurrentSnowResponse,
   CurrentSnowZoneSummary,
   ObservationZone,
 } from '../../types/currentSnow.js';
-import { formatCm, formatDateTime } from '../../lib/format.js';
 import { Badge } from '../ui/Badge.js';
 import { Card } from '../ui/Card.js';
 import { Spinner } from '../ui/Spinner.js';
 import { CurrentSnowSources } from './CurrentSnowSources.js';
+import { OperationsStrip } from './OperationsStrip.js';
 
 const ZONE_LABELS: Record<ObservationZone, { name: string; elevation: string }> = {
   base: { name: 'Base', elevation: '2.240 m' },
@@ -45,9 +46,14 @@ function externalRange(zone: CurrentSnowZoneSummary): string | null {
 function ZoneCard({ zone }: { zone: CurrentSnowZoneSummary }) {
   const label = ZONE_LABELS[zone.zone];
   const range = externalRange(zone);
+  const digits =
+    zone.referenceDepthCm !== null && zone.referenceDepthCm % 1 !== 0 ? 1 : 0;
 
   return (
-    <article className="rounded-2xl border border-white/8 bg-slate-950/40 p-4" aria-label={`Nieve actual en ${label.name}`}>
+    <article
+      className="rounded-2xl border border-white/8 bg-slate-950/40 p-4"
+      aria-label={`Nieve actual en ${label.name}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-white">{label.name}</p>
@@ -60,7 +66,7 @@ function ZoneCard({ zone }: { zone: CurrentSnowZoneSummary }) {
 
       <div className="mt-5">
         <p className="text-4xl font-semibold tracking-tight text-white">
-          {formatCm(zone.referenceDepthCm, zone.referenceDepthCm !== null && zone.referenceDepthCm % 1 !== 0 ? 1 : 0)}
+          {formatCm(zone.referenceDepthCm, digits)}
         </p>
         <p className="mt-1 text-xs text-slate-500">Profundidad del manto reportada</p>
       </div>
@@ -68,7 +74,9 @@ function ZoneCard({ zone }: { zone: CurrentSnowZoneSummary }) {
       <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-white/8 pt-4 text-sm">
         <div>
           <dt className="text-xs text-slate-500">Nieve nueva 24 h</dt>
-          <dd className="mt-1 font-medium text-slate-100">{formatCm(zone.newSnow24hCm, 1)}</dd>
+          <dd className="mt-1 font-medium text-slate-100">
+            {formatCm(zone.newSnow24hCm, 1)}
+          </dd>
         </div>
         <div>
           <dt className="text-xs text-slate-500">Fuentes independientes</dt>
@@ -125,8 +133,8 @@ export function CurrentSnowPanel({
           <div>
             <h2 className="font-semibold text-white">Nieve actual no disponible</h2>
             <p className="mt-1 text-sm leading-6 text-slate-400">
-              {error?.message ?? 'No se pudo consultar ninguna fuente en este momento.'}
-              {' '}El pronóstico sigue disponible más abajo.
+              {error?.message ?? 'No se pudo consultar ninguna fuente en este momento.'}{' '}
+              El pronóstico sigue disponible más abajo.
             </p>
           </div>
         </div>
@@ -144,11 +152,15 @@ export function CurrentSnowPanel({
             </div>
             <div>
               <p className="eyebrow">Observaciones, no pronóstico</p>
-              <h2 id="current-snow-title" className="mt-1 text-xl font-semibold tracking-tight text-white">
+              <h2
+                id="current-snow-title"
+                className="mt-1 text-xl font-semibold tracking-tight text-white"
+              >
                 Nieve actual reportada
               </h2>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400">
-                Profundidad informada por Las Leñas y reportes externos recientes. No incluye la nieve futura de los modelos.
+                Profundidad informada por Las Leñas y reportes externos recientes. No incluye
+                la nieve futura de los modelos.
               </p>
             </div>
           </div>
@@ -169,6 +181,8 @@ export function CurrentSnowPanel({
             {data.warnings.join(' ')}
           </div>
         ) : null}
+
+        <OperationsStrip operations={data.operations} />
 
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
           {data.zones.map((zone) => (
