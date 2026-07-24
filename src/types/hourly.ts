@@ -44,6 +44,27 @@ export interface ModelHourlyResult {
   levels: HourlyLevelForecast[];
 }
 
+export interface HourlyModelStatus {
+  id: ModelId;
+  name: string;
+  shortName: string;
+  status: 'ok' | 'failed';
+  generatedAt: string | null;
+  message: string | null;
+}
+
+export interface HourlyResponse {
+  resort: {
+    name: string;
+    timezone: string;
+    updatedAt: string;
+    source: string;
+  };
+  models: HourlyModelStatus[];
+  levels: HourlyLevelForecast[];
+  warnings: string[];
+}
+
 export interface ForecastWindow {
   startTime: string;
   endTime: string;
