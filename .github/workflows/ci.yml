@@ -36,3 +36,14 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Upload deployment source
+        uses: actions/upload-artifact@v4
+        with:
+          name: nieve-vercel-source
+          path: |
+            .
+            !node_modules
+            !.git
+          include-hidden-files: true
+          if-no-files-found: error
