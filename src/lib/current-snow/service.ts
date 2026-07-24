@@ -137,11 +137,24 @@ function mergeOfficialOperations(
   reports: CurrentSnowSourceReport[],
   fetched: CurrentSnowOperations | null,
 ): CurrentSnowOperations {
-  const official = reports.find((report) => report.sourceId === 'las-lenas');
+  const legacy = reports.find((report) => report.sourceId === 'las-lenas')?.operations;
+  const empty = emptyOperations();
   return {
-    ...emptyOperations(),
-    ...official?.operations,
-    ...fetched,
+    liftsOpen: fetched?.liftsOpen ?? legacy?.liftsOpen ?? empty.liftsOpen,
+    liftsConditional:
+      fetched?.liftsConditional ?? legacy?.liftsConditional ?? empty.liftsConditional,
+    liftsTotal: fetched?.liftsTotal ?? legacy?.liftsTotal ?? empty.liftsTotal,
+    slopesOpen: fetched?.slopesOpen ?? legacy?.slopesOpen ?? empty.slopesOpen,
+    slopesTotal: fetched?.slopesTotal ?? legacy?.slopesTotal ?? empty.slopesTotal,
+    slopesOpenKm: fetched?.slopesOpenKm ?? legacy?.slopesOpenKm ?? empty.slopesOpenKm,
+    slopesTotalKm:
+      fetched?.slopesTotalKm ?? legacy?.slopesTotalKm ?? empty.slopesTotalKm,
+    avalancheRisk:
+      fetched?.avalancheRisk ?? legacy?.avalancheRisk ?? empty.avalancheRisk,
+    offPisteStatus:
+      fetched?.offPisteStatus ?? legacy?.offPisteStatus ?? empty.offPisteStatus,
+    officialNote: fetched?.officialNote ?? legacy?.officialNote ?? empty.officialNote,
+    fetchedAt: fetched?.fetchedAt ?? legacy?.fetchedAt ?? empty.fetchedAt,
   };
 }
 
