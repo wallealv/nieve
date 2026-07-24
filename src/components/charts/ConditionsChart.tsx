@@ -33,7 +33,8 @@ function compactTooltip(unit: string) {
       boxShadow: '0 18px 50px rgba(0,0,0,.35)',
       fontSize: 12,
     },
-    labelFormatter: (label: string) => formatDay(label),
+    labelFormatter: (label: ReactNode) =>
+      typeof label === 'string' ? formatDay(label) : label,
     formatter: (value: unknown): [string, string] => [
       value == null ? '—' : `${String(value)}${unit}`,
       '',
