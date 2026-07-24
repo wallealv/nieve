@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, feat/las-lenas-snow-dashboard]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -29,26 +29,10 @@ jobs:
         run: npm run lint
 
       - name: Typecheck
-        run: npm run typecheck > typecheck.log 2>&1
-
-      - name: Upload typecheck diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: typecheck-diagnostics
-          path: typecheck.log
-          retention-days: 1
+        run: npm run typecheck
 
       - name: Test
-        run: npm run test > test.log 2>&1
-
-      - name: Upload test diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-diagnostics
-          path: test.log
-          retention-days: 1
+        run: npm run test
 
       - name: Build
         run: npm run build
