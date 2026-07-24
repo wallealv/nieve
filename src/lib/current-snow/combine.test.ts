@@ -6,12 +6,10 @@ function observation(
   overrides: Partial<SnowObservation> & Pick<SnowObservation, 'sourceId' | 'zone'>,
 ): SnowObservation {
   return {
-    sourceId: overrides.sourceId,
     sourceName: overrides.sourceId,
     sourceKind: 'external',
     sourceUrl: 'https://example.com',
     provenanceGroup: 'independent',
-    zone: overrides.zone,
     elevationM: null,
     depthCm: null,
     newSnow24hCm: null,
@@ -22,6 +20,8 @@ function observation(
     timestampKind: 'reported',
     freshness: 'fresh',
     ...overrides,
+    sourceId: overrides.sourceId,
+    zone: overrides.zone,
   };
 }
 
