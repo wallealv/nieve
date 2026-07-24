@@ -1,132 +1,177 @@
 # Las Leñas Snow Monitor
 
-Panel web responsive para consultar **nieve actual reportada**, operación oficial y pronóstico multimodelo por nivel de montaña. Combina **ECMWF IFS**, **NOAA GFS** y **DWD ICON**, detecta tormentas continuas y conserva un historial local de corridas.
+Panel web responsive y PWA para decidir **cuándo subir, en qué cota esquiar y qué calidad de nieve esperar** en Las Leñas. Combina nieve actual reportada, operación oficial, estado de la RP 222 y pronóstico multimodelo de **ECMWF IFS, NOAA GFS y DWD ICON**.
 
-## Qué muestra
+La v3 funciona sin login y sin Supabase. Historial, preferencias, favoritos y alertas se guardan únicamente en el dispositivo.
 
-### Resumen de la próxima tormenta
+## Funciones principales
 
-- Evento de nieve más importante dentro de los próximos siete días.
-- Inicio, final, duración y día de mayor intensidad.
-- Acumulación central y rango entre modelos para base, montaña media y alta montaña.
-- Confianza del evento, viento, ráfagas y rango de cota de congelación.
-- Clasificación moderada, fuerte o muy fuerte según el acumulado en alta montaña.
+### Próxima tormenta
 
-La detección agrupa días consecutivos con nieve y permite un único día intermedio débil cuando forma parte del mismo evento. No destaca automáticamente el primer centímetro aislado.
+- Detecta el evento de nieve más importante de los próximos siete días.
+- Muestra inicio, final, duración y pico estimado.
+- Separa Base, Montaña media y Alta montaña.
+- Presenta mediana multimodelo, rango y confianza.
+- Incluye viento, ráfagas y cota de congelación.
+
+### Pronóstico horario de 72 horas
+
+- Datos horarios internos y visualización en bloques de tres horas.
+- Nieve, lluvia, precipitación y probabilidad.
+- Temperatura, sensación térmica, humedad y punto de rocío.
+- Viento, dirección, ráfagas, visibilidad y nubosidad.
+- Radiación, cota de congelación y día/noche.
+- Consenso tolerante a la caída de uno de los modelos.
+
+### Fase y calidad estimada
+
+La app clasifica conservadoramente cada ventana como:
+
+- lluvia;
+- mezcla;
+- nieve húmeda;
+- nieve seca;
+- sin precipitación;
+- incierta.
+
+También estima polvo seco, polvo denso, nieve húmeda, nieve venteada, compactación, costra/hielo o corn posible. Estas etiquetas son inferencias meteorológicas explicables, no observaciones del terreno.
+
+### Scores y mejores ventanas
+
+Calcula puntajes de 0 a 100 para:
+
+- **Powder:** nieve nueva, proporción nocturna, temperatura, lluvia, viento y profundidad observada.
+- **Pista:** visibilidad, ráfagas, temperatura, lluvia, hielo, radiación y operación.
+- **Freeride:** nieve nueva, calidad, viento, visibilidad, riesgo de avalancha y estado oficial de fuera de pista.
+
+Si fuera de pista está cerrado oficialmente, el Freeride Score queda bloqueado. Los scores nunca reemplazan el parte oficial ni las decisiones de seguridad.
 
 ### Nieve actual reportada
 
-- Profundidad actual del manto en base, intermedia y cumbre cuando una fuente publica la medición.
-- Nieve nueva de las últimas 24 horas cuando el período está declarado explícitamente.
 - Las Leñas oficial como fuente prioritaria.
-- Snow-Forecast, Skiresort.info y OnTheSnow como contraste o referencia.
-- Rango externo y mediana únicamente entre procedencias independientes.
-- Fecha reportada, fecha de consulta, frescura y enlace a cada fuente.
-- Funcionamiento degradado: una página caída no bloquea las demás ni el pronóstico.
+- Snow-Forecast, Skiresort.info y OnTheSnow como contraste.
+- Profundidad por Base, Media y Cumbre cuando existe una medición explícita.
+- Nieve nueva de 24 horas únicamente cuando el período está declarado.
+- Fecha reportada, fecha de consulta y frescura.
+- Consenso externo solo entre procedencias independientes y recientes.
+- Una fuente caída no bloquea las demás ni el pronóstico.
 
-**La profundidad actual y la nieve pronosticada son métricas distintas.** La profundidad describe el manto informado por una fuente; el pronóstico estima precipitación futura y no se suma automáticamente al manto existente.
+La profundidad actual y la nieve futura son métricas diferentes. La app no suma automáticamente precipitación pronosticada al manto reportado.
 
-### Operación oficial
+### Operación y acceso
 
-Cuando la web de Las Leñas expone estados interpretables, la app muestra:
+- Medios y pistas abiertos cuando Las Leñas publica datos interpretables.
+- Riesgo oficial de avalancha.
+- Estado oficial de fuera de pista y cambios desde la consulta anterior.
+- Estado de la RP 222, cadenas, maquinaria y riesgos mencionados.
+- Resaltado de cambios viales guardando el último estado localmente.
+- Acceso seguro a la webcam oficial, aun cuando no pueda embeberse.
 
-- medios abiertos, condicionales y totales;
-- pistas abiertas y totales;
-- estado de fuera de pista;
-- riesgo de avalancha y observaciones oficiales.
+### Evolución de modelos
 
-Los parsers son conservadores: un estado ambiguo se devuelve como ausente, nunca como cerrado por defecto.
+Compara la corrida actual y hasta dos corridas anteriores por modelo. Informa si el pronóstico está:
 
-### Pronóstico
+- subiendo;
+- bajando;
+- estable;
+- convergiendo;
+- divergiendo;
+- con datos insuficientes.
 
-- Base, montaña media y alta montaña como puntos meteorológicos independientes.
-- Nieve estimada para 24 horas, 72 horas, 7 días y 15 días.
-- Mediana multimodelo, mínimo y máximo por día.
-- Valores individuales de ECMWF, GFS e ICON.
-- Temperatura, viento, ráfagas y cota de congelación.
-- Perfil vertical de la montaña.
-- Estado de cada modelo y funcionamiento degradado si una fuente falla.
-- Actualización automática cada tres horas y actualización manual.
+La ausencia de una corrida archivada no hace fallar el endpoint completo.
 
-La API realiza una sola solicitud multiubicación por modelo: tres llamadas principales por actualización normal en lugar de nueve. Los errores 429 y 5xx reciben un reintento breve antes de degradar el modelo.
+### Referencia histórica modelada
 
-### Historial local
+Compara el pronóstico de siete días con una muestra histórica de la misma semana del año usando Open-Meteo Historical Weather API / ERA5.
 
-- Conserva hasta 30 corridas durante un máximo de 45 días.
-- Muestra si el acumulado a siete días subió o bajó frente a la corrida anterior.
-- Guarda acumulados por modelo y por cota.
-- Compara de forma orientativa una previsión previa con la nieve nueva observada cuando las fechas coinciden.
+Muestra promedio, mediana, mínimo, máximo y cantidad de temporadas. Es una referencia modelada de nieve nueva; no es espesor observado ni una garantía del microclima de Las Leñas.
 
-El historial usa `localStorage`: existe únicamente en el navegador y dispositivo donde se abrió la app.
+### Comparador regional
+
+Compara siete centros mediante coordenadas representativas de base y cumbre:
+
+- Las Leñas;
+- Catedral;
+- Chapelco;
+- Cerro Castor;
+- Valle Nevado;
+- La Parva;
+- El Colorado.
+
+El ranking considera nieve en 72 horas y siete días, confianza, viento y riesgo de lluvia en base. Cada posición explica qué factores suman y cuáles penalizan. Los favoritos se guardan localmente.
+
+### Mapa regional lazy
+
+- No solicita datos hasta que el usuario abre el mapa.
+- Usa 14 puntos preconfigurados de base/cumbre.
+- Permite cambiar entre 6, 12, 24, 48 y 72 horas.
+- Usa ECMWF como guía visual orientativa.
+- Se renderiza como SVG liviano, sin motor cartográfico pesado.
 
 ### Alertas locales
 
-Valores iniciales:
+Se evalúan al abrir o actualizar la app:
 
-- 25 cm en 72 horas;
-- 40 cm en 7 días;
-- confianza mínima Media;
-- cualquier cota.
+- nieve en 72 horas;
+- nieve en siete días;
+- confianza mínima;
+- ráfagas;
+- lluvia en Base;
+- cambio de RP 222;
+- cambio de fuera de pista;
+- variación fuerte entre corridas.
 
-El usuario puede cambiar umbrales, confianza y cota. La app evalúa las reglas cuando se abre o actualiza y puede usar la Web Notifications API si el navegador concede permiso.
+Pueden usar Web Notifications si el navegador concede permiso. **No son Web Push con la aplicación cerrada.**
 
-**No hay notificaciones de servidor con la app cerrada.** Eso requeriría persistencia remota, suscripciones web push y un proceso programado.
+### PWA y modo offline
 
-## Cómo se combina la nieve actual
+- Manifest e iconos propios.
+- Instalación en escritorio, Android y pantalla de inicio de iPhone.
+- Service worker con caché del shell.
+- `stale-while-revalidate` para respuestas JSON.
+- Último dato válido disponible sin conexión cuando ya fue consultado.
+- Aviso cuando existe una versión nueva para recargar.
 
-1. Si Las Leñas publica profundidad para una zona, ese valor se muestra como **Dato oficial**.
-2. Si falta el oficial y hay dos procedencias externas recientes, se muestra su mediana como **Consenso externo** y también el rango mínimo–máximo.
-3. Si solo queda una procedencia externa, se muestra como referencia orientativa y se advierte que no existe consenso.
-4. Los reportes externos de más de 72 horas no entran al combinado.
-5. Snow-Forecast y Skiresort.info se consideran una misma red de procedencia para evitar contar dos veces un parte redistribuido.
-6. La montaña intermedia nunca se estima a partir de base y cumbre.
+## Persistencia local
 
-| Estado | Antigüedad reportada | Participa del combinado externo |
-| --- | ---: | --- |
-| Reciente | Hasta 24 h | Sí |
-| 24–72 h | Más de 24 h y hasta 72 h | Sí |
-| Antiguo | Más de 72 h | No |
-| Hora desconocida | Sin timestamp confiable | No |
+Se usa un adaptador versionado sobre `localStorage` e IndexedDB para:
 
-## Cómo interpretar los 15 días
+- historial de hasta 30 snapshots;
+- configuración de alertas;
+- cota y período elegidos;
+- centros favoritos;
+- último estado de ruta y fuera de pista;
+- deduplicación de notificaciones.
 
-| Horizonte | Modelos principales | Uso recomendado |
-| --- | --- | --- |
-| Días 0–7 | ECMWF + GFS + ICON | Pronóstico operativo |
-| Días 8–10 | ECMWF + GFS | Tendencia extendida |
-| Días 11–15 | ECMWF + GFS | Escenario orientativo de baja confianza |
-
-Los centímetros de los días 11–15 no deben interpretarse como una predicción local precisa. En ese tramo importa más la persistencia de la señal entre corridas que el valor exacto.
+La sección de datos locales permite exportar o borrar solo la información perteneciente a Snow Monitor. Los datos no se sincronizan entre dispositivos.
 
 ## Arquitectura
 
 ```text
 React + Vite + TanStack Query
             │
-            ├── GET /api/forecast
-            │       └── Open-Meteo
-            │           ├─ ECMWF: base + media + cumbre
-            │           ├─ GFS: base + media + cumbre
-            │           └─ ICON: base + media + cumbre
-            │
-            └── GET /api/current-snow
-                    ├─ Las Leñas: tiempo, medios, pistas y fuera de pista
-                    ├─ Snow-Forecast
-                    ├─ Skiresort.info
-                    └─ OnTheSnow
+            ├── /api/forecast       pronóstico diario por cota
+            ├── /api/current-snow   nieve observada y operación
+            ├── /api/hourly         consenso horario 72 h
+            ├── /api/model-runs     corridas anteriores
+            ├── /api/road           RP 222
+            ├── /api/webcam         disponibilidad de webcam
+            ├── /api/regional       comparador de centros
+            ├── /api/regional-grid  puntos del mapa lazy
+            └── /api/climatology    referencia histórica ERA5
 ```
 
-Los componentes gráficos se cargan de forma diferida. Vite separa React y las dependencias de gráficos para reducir el JavaScript inicial.
+Los endpoints tienen caché CDN independiente, errores estructurados y funcionamiento degradado. Los componentes React consumen contratos tipados y no conocen los detalles de scraping ni de Open-Meteo.
 
-## Cotas configuradas
+## Cotas de Las Leñas
 
-| Nivel | Elevación | Uso en la app |
+| Nivel | Elevación | Uso |
 | --- | ---: | --- |
-| Base | 2.240 m | Valle, accesos y profundidad inferior |
-| Montaña media | 2.800 m | Referencia central; profundidad solo si una fuente la publica |
+| Base | 2.240 m | Valle, acceso y profundidad inferior |
+| Montaña media | 2.800 m | Referencia meteorológica central |
 | Alta montaña | 3.430 m | Sectores altos y profundidad superior |
 
-Las coordenadas son puntos representativos aproximados y se centralizan en `src/config/mountain.ts`.
+Las coordenadas son puntos representativos aproximados, centralizados en `src/config/mountain.ts`.
 
 ## Desarrollo local
 
@@ -137,7 +182,7 @@ npm install
 npm run dev
 ```
 
-Vite monta localmente la misma lógica de `/api/forecast` y `/api/current-snow`.
+Vite monta localmente los mismos nueve endpoints que Vercel Functions.
 
 ## Verificación
 
@@ -148,51 +193,43 @@ npm run test
 npm run build
 ```
 
-Las pruebas cubren:
+La suite cubre normalización multimodelo, fase, calidad, scores, ventanas, corridas, parsers, frescura, deduplicación, RP 222, webcam, persistencia, alertas, comparador regional, mapa lazy, climatología y estados degradados de interfaz.
 
-- mediana, rango y tratamiento de datos ausentes;
-- respuestas multiubicación y reintentos de Open-Meteo;
-- degradación cuando falla un modelo meteorológico;
-- agrupación y clasificación de tormentas;
-- parsing de fuentes de nieve y estados operativos;
-- frescura, deduplicación por procedencia y prioridad oficial;
-- retención y deduplicación del historial local;
-- evaluación de alertas por cota, confianza y ventana temporal;
-- estados normales, degradados y de error de la interfaz.
+## Caché CDN
 
-## Caché y actualización
+| Endpoint | `s-maxage` |
+| --- | ---: |
+| `/api/forecast` | 3 h |
+| `/api/current-snow` | 1 h |
+| `/api/hourly` | 1 h |
+| `/api/model-runs` | 3 h |
+| `/api/road` | 30 min |
+| `/api/webcam` | 1 h |
+| `/api/regional` | 3 h |
+| `/api/regional-grid` | 3 h |
+| `/api/climatology` | 24 h |
 
-`/api/forecast`:
+Todos usan `stale-while-revalidate` cuando corresponde.
 
-```http
-Cache-Control: public, max-age=0, s-maxage=10800, stale-while-revalidate=1800
-```
+## Despliegue
 
-`/api/current-snow`:
+El proyecto está configurado para Vite y Vercel Functions y no requiere variables de entorno. Los previews de `feat/snow-monitor-v3` están deshabilitados; el merge a `main` genera el despliegue de producción.
 
-```http
-Cache-Control: public, max-age=0, s-maxage=3600, stale-while-revalidate=10800
-```
+## Fuentes
 
-## Despliegue en Vercel
+- Las Leñas: parte de nieve, operación y webcam.
+- Gobierno de Mendoza / Dirección Provincial de Vialidad: RP 222.
+- Snow-Forecast, Skiresort.info y OnTheSnow: reportes externos.
+- Open-Meteo: ECMWF, GFS, ICON, Single Runs e Historical Weather API / ERA5.
 
-El proyecto está preparado para Vite y Vercel Functions. No necesita variables de entorno. La rama de desarrollo `feat/snow-monitor-v2` tiene los previews automáticos deshabilitados para no consumir despliegues durante la implementación; el merge a `main` genera el despliegue de producción.
-
-## Fuentes y atribución
-
-- Parte oficial: [Las Leñas](https://laslenas.com/estado-pistas/condiciones-del-tiempo/)
-- Reportes externos: [Snow-Forecast](https://www.snow-forecast.com/resorts/Las-Lenas/snow-report), [Skiresort.info](https://www.skiresort.info/ski-resort/las-lenas/snow-report/) y [OnTheSnow](https://www.onthesnow.com/argentina/las-lenas/skireport)
-- Datos meteorológicos: [Open-Meteo](https://open-meteo.com/)
-- Modelos: [ECMWF IFS](https://open-meteo.com/en/docs/ecmwf-api), [NOAA GFS](https://open-meteo.com/en/docs/gfs-api) y [DWD ICON](https://open-meteo.com/en/docs/dwd-api)
-
-Antes de un uso comercial, revisá las condiciones de licencia, atribución y automatización de cada proveedor.
+Antes de un uso comercial deben revisarse las condiciones de licencia, atribución y automatización de cada proveedor.
 
 ## Limitaciones
 
 - Los reportes pueden diferir por hora, cota, compactación y método de medición.
-- Una fuente puede cambiar su HTML o bloquear consultas automáticas; la app la marca como no disponible y continúa con las demás.
-- La nieve nueva, la profundidad pisada y la profundidad fuera de pista no son equivalentes.
+- Los parsers externos pueden dejar de funcionar si una fuente cambia su HTML o bloquea automatización.
+- Las coordenadas regionales no representan cada pista ni todos los microclimas.
+- La calidad y los scores son estimaciones, no observaciones ni recomendaciones de seguridad.
 - El historial y las alertas no se sincronizan entre dispositivos.
-- La comparación pronóstico–observación es orientativa porque las cotas y métodos pueden diferir.
-- No reemplaza el parte oficial, el estado de caminos ni los avisos de seguridad y avalanchas.
-- El índice de confianza meteorológico es una métrica interna de acuerdo, cobertura y horizonte; no es una probabilidad oficial.
+- Sin backend persistente no existe timelapse remoto ni Web Push real con la app cerrada.
+- La app no reemplaza el parte oficial, Vialidad ni los avisos de avalanchas.
