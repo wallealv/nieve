@@ -51,10 +51,16 @@ export interface CurrentSnowZoneSummary {
 
 export interface CurrentSnowOperations {
   liftsOpen: number | null;
+  liftsConditional: number | null;
   liftsTotal: number | null;
+  slopesOpen: number | null;
+  slopesTotal: number | null;
   slopesOpenKm: number | null;
   slopesTotalKm: number | null;
   avalancheRisk: number | null;
+  offPisteStatus: string | null;
+  officialNote: string | null;
+  fetchedAt: string | null;
 }
 
 export interface CurrentSnowSourceReport {

@@ -20,12 +20,12 @@ import {
 } from './confidence.js';
 import { compact, median, nullableRange, round, sumNullable } from './math.js';
 import type { NormalizedModelLevel } from './normalize.js';
-import { fetchOpenMeteoLevel } from './openMeteo.js';
+import { fetchOpenMeteoModel } from './openMeteo.js';
 
 export type ForecastFetcher = (
   model: ForecastModelConfig,
-  level: MountainLevelConfig,
-) => Promise<NormalizedModelLevel>;
+  levels: readonly MountainLevelConfig[],
+) => Promise<NormalizedModelLevel[]>;
 
 interface SettledEntry {
   model: ForecastModelConfig;
@@ -166,32 +166,21 @@ function buildLevelForecast(
       temperatureMaxC: round(
         median(modelDays.map((day) => day?.temperatureMaxC ?? null)),
       ),
-      windMaxKmh: round(
-        maxNullable(modelDays.map((day) => day?.windMaxKmh ?? null)),
-      ),
-      gustMaxKmh: round(
-        maxNullable(modelDays.map((day) => day?.gustMaxKmh ?? null)),
-      ),
+      windMaxKmh: round(maxNullable(modelDays.map((day) => day?.windMaxKmh ?? null))),
+      gustMaxKmh: round(maxNullable(modelDays.map((day) => day?.gustMaxKmh ?? null))),
       freezingLevelM: round(
         median(modelDays.map((day) => day?.freezingLevelM ?? null)),
         0,
       ),
-      weatherCode: round(
-        maxNullable(modelDays.map((day) => day?.weatherCode ?? null)),
-        0,
-      ),
+      weatherCode: round(maxNullable(modelDays.map((day) => day?.weatherCode ?? null)), 0),
     };
   });
 
   const results = FORECAST_MODELS.map((model) =>
     successful.get(`${model.id}:${level.id}`),
   );
-  const hours24 = round(
-    median(results.map((result) => totalForHours(result, 24))),
-  );
-  const hours72 = round(
-    median(results.map((result) => totalForHours(result, 72))),
-  );
+  const hours24 = round(median(results.map((result) => totalForHours(result, 24))));
+  const hours72 = round(median(results.map((result) => totalForHours(result, 72))));
 
   return {
     level,
@@ -199,12 +188,8 @@ function buildLevelForecast(
     totals: {
       hours24,
       hours72,
-      days7: round(
-        sumNullable(daily.slice(0, 7).map((day) => day.snowfallMedianCm)),
-      ),
-      days15: round(
-        sumNullable(daily.slice(0, 15).map((day) => day.snowfallMedianCm)),
-      ),
+      days7: round(sumNullable(daily.slice(0, 7).map((day) => day.snowfallMedianCm))),
+      days15: round(sumNullable(daily.slice(0, 15).map((day) => day.snowfallMedianCm))),
     },
     maxWindKmh: round(maxNullable(daily.map((day) => day.windMaxKmh))),
     maxGustKmh: round(maxNullable(daily.map((day) => day.gustMaxKmh))),
@@ -228,9 +213,7 @@ function buildDailyConsensus(levels: LevelForecast[]) {
     const levelDays = levels
       .map((level) => level.daily[dayIndex])
       .filter((value): value is LevelDailyForecast => value !== undefined);
-    const score = Math.round(
-      median(levelDays.map((value) => value.confidenceScore)) ?? 0,
-    );
+    const score = Math.round(median(levelDays.map((value) => value.confidenceScore)) ?? 0);
     return {
       date: day.date,
       dayIndex,
@@ -244,20 +227,44 @@ function buildDailyConsensus(levels: LevelForecast[]) {
   });
 }
 
+function entriesFromBatch(
+  model: ForecastModelConfig,
+  result: PromiseSettledResult<NormalizedModelLevel[]>,
+): SettledEntry[] {
+  if (result.status === 'rejected') {
+    return MOUNTAIN_LEVELS.map((level) => ({
+      model,
+      level,
+      result: { status: 'rejected', reason: result.reason },
+    }));
+  }
+
+  const byLevel = new Map(result.value.map((item) => [item.levelId, item]));
+  return MOUNTAIN_LEVELS.map((level) => {
+    const value = byLevel.get(level.id);
+    return value
+      ? { model, level, result: { status: 'fulfilled', value } }
+      : {
+          model,
+          level,
+          result: {
+            status: 'rejected',
+            reason: new Error(`${model.shortName} returned no data for ${level.name}`),
+          },
+        };
+  });
+}
+
 export async function buildForecastResponse(
-  fetcher: ForecastFetcher = fetchOpenMeteoLevel,
+  fetcher: ForecastFetcher = fetchOpenMeteoModel,
   updatedAt = new Date().toISOString(),
 ): Promise<ForecastResponse> {
-  const metadata = FORECAST_MODELS.flatMap((model) =>
-    MOUNTAIN_LEVELS.map((level) => ({ model, level })),
-  );
   const results = await Promise.allSettled(
-    metadata.map(({ model, level }) => fetcher(model, level)),
+    FORECAST_MODELS.map((model) => fetcher(model, MOUNTAIN_LEVELS)),
   );
-  const entries: SettledEntry[] = metadata.map((item, index) => ({
-    ...item,
-    result: results[index]!,
-  }));
+  const entries = FORECAST_MODELS.flatMap((model, index) =>
+    entriesFromBatch(model, results[index]!),
+  );
   const successful = new Map<string, NormalizedModelLevel>();
   entries.forEach((entry) => {
     if (entry.result.status === 'fulfilled') {
@@ -266,9 +273,7 @@ export async function buildForecastResponse(
   });
 
   if (successful.size === 0) {
-    const firstError = entries.find(
-      (entry) => entry.result.status === 'rejected',
-    );
+    const firstError = entries.find((entry) => entry.result.status === 'rejected');
     const message =
       firstError?.result.status === 'rejected'
         ? firstError.result.reason instanceof Error

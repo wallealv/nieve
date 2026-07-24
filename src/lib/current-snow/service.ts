@@ -6,6 +6,7 @@ import type {
   CurrentSnowSourceStatusEntry,
 } from '../../types/currentSnow.js';
 import { combineCurrentSnow } from './combine.js';
+import { fetchLasLenasOperations } from './operations.js';
 import { parseLasLenas } from './sources/lasLenas.js';
 import { parseOnTheSnow } from './sources/onTheSnow.js';
 import { parseSkiResortInfo } from './sources/skiResortInfo.js';
@@ -50,6 +51,8 @@ export type CurrentSnowFetcher = (
   fetchedAt: string,
 ) => Promise<CurrentSnowSourceReport>;
 
+export type OperationsFetcher = (fetchedAt: string) => Promise<CurrentSnowOperations>;
+
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -63,7 +66,7 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
         Accept: 'text/html,application/xhtml+xml',
         'Accept-Language': 'es-AR,es;q=0.9,en;q=0.7',
         'User-Agent':
-          'Mozilla/5.0 (compatible; LasLenasSnowMonitor/1.0; +https://nieve.wallealv.com)',
+          'Mozilla/5.0 (compatible; LasLenasSnowMonitor/2.0; +https://nieve.wallealv.com)',
       },
     });
   } finally {
@@ -114,27 +117,65 @@ function sourceStatus(
   };
 }
 
+function emptyOperations(): CurrentSnowOperations {
+  return {
+    liftsOpen: null,
+    liftsConditional: null,
+    liftsTotal: null,
+    slopesOpen: null,
+    slopesTotal: null,
+    slopesOpenKm: null,
+    slopesTotalKm: null,
+    avalancheRisk: null,
+    offPisteStatus: null,
+    officialNote: null,
+    fetchedAt: null,
+  };
+}
+
 function mergeOfficialOperations(
   reports: CurrentSnowSourceReport[],
+  fetched: CurrentSnowOperations | null,
 ): CurrentSnowOperations {
-  const official = reports.find((report) => report.sourceId === 'las-lenas');
+  const legacy = reports.find((report) => report.sourceId === 'las-lenas')?.operations;
+  const empty = emptyOperations();
   return {
-    liftsOpen: official?.operations?.liftsOpen ?? null,
-    liftsTotal: official?.operations?.liftsTotal ?? null,
-    slopesOpenKm: official?.operations?.slopesOpenKm ?? null,
-    slopesTotalKm: official?.operations?.slopesTotalKm ?? null,
-    avalancheRisk: official?.operations?.avalancheRisk ?? null,
+    liftsOpen: fetched?.liftsOpen ?? legacy?.liftsOpen ?? empty.liftsOpen,
+    liftsConditional:
+      fetched?.liftsConditional ?? legacy?.liftsConditional ?? empty.liftsConditional,
+    liftsTotal: fetched?.liftsTotal ?? legacy?.liftsTotal ?? empty.liftsTotal,
+    slopesOpen: fetched?.slopesOpen ?? legacy?.slopesOpen ?? empty.slopesOpen,
+    slopesTotal: fetched?.slopesTotal ?? legacy?.slopesTotal ?? empty.slopesTotal,
+    slopesOpenKm: fetched?.slopesOpenKm ?? legacy?.slopesOpenKm ?? empty.slopesOpenKm,
+    slopesTotalKm:
+      fetched?.slopesTotalKm ?? legacy?.slopesTotalKm ?? empty.slopesTotalKm,
+    avalancheRisk:
+      fetched?.avalancheRisk ?? legacy?.avalancheRisk ?? empty.avalancheRisk,
+    offPisteStatus:
+      fetched?.offPisteStatus ?? legacy?.offPisteStatus ?? empty.offPisteStatus,
+    officialNote: fetched?.officialNote ?? legacy?.officialNote ?? empty.officialNote,
+    fetchedAt: fetched?.fetchedAt ?? legacy?.fetchedAt ?? empty.fetchedAt,
   };
 }
 
 export async function buildCurrentSnowResponse(
   fetcher: CurrentSnowFetcher = fetchCurrentSnowSource,
   now = new Date(),
+  operationsFetcher?: OperationsFetcher,
 ): Promise<CurrentSnowResponse> {
   const generatedAt = now.toISOString();
   const settled = await Promise.allSettled(
     CURRENT_SNOW_SOURCES.map((source) => fetcher(source, generatedAt)),
   );
+  const shouldFetchOperations =
+    operationsFetcher ??
+    (fetcher === fetchCurrentSnowSource ? fetchLasLenasOperations : null);
+  const operationsResult = shouldFetchOperations
+    ? await Promise.resolve(shouldFetchOperations(generatedAt)).then(
+        (value) => ({ status: 'fulfilled' as const, value }),
+        (reason) => ({ status: 'rejected' as const, reason }),
+      )
+    : null;
 
   const reports = settled.flatMap((result) =>
     result.status === 'fulfilled' ? [result.value] : [],
@@ -166,12 +207,18 @@ export async function buildCurrentSnowResponse(
   if (!observations.some((observation) => observation.sourceKind === 'official')) {
     warnings.unshift('El parte oficial no está disponible; la referencia actual usa fuentes externas.');
   }
+  if (operationsResult?.status === 'rejected') {
+    warnings.push('El estado operativo oficial no está disponible en este momento.');
+  }
 
   return {
     resort: 'Las Leñas',
     generatedAt,
     zones: combineCurrentSnow(observations),
-    operations: mergeOfficialOperations(reports),
+    operations: mergeOfficialOperations(
+      reports,
+      operationsResult?.status === 'fulfilled' ? operationsResult.value : null,
+    ),
     sourceStatuses,
     warnings,
   };

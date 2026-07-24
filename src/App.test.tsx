@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, test, vi } from 'vitest';
-import type { CurrentSnowResponse } from './types/currentSnow.js';
 import { makeForecastFixture } from './test/fixtures.js';
+import type { CurrentSnowResponse } from './types/currentSnow.js';
 
 const forecastRefetch = vi.fn();
 const currentSnowRefetch = vi.fn();
@@ -48,11 +48,17 @@ const currentSnowData: CurrentSnowResponse = {
     },
   ],
   operations: {
-    liftsOpen: null,
-    liftsTotal: null,
+    liftsOpen: 8,
+    liftsConditional: 1,
+    liftsTotal: 12,
+    slopesOpen: 14,
+    slopesTotal: 29,
     slopesOpenKm: null,
     slopesTotalKm: null,
-    avalancheRisk: null,
+    avalancheRisk: 3,
+    offPisteStatus: 'Condicional',
+    officialNote: null,
+    fetchedAt: '2026-07-24T12:00:00Z',
   },
   sourceStatuses: [],
   warnings: [],
@@ -81,6 +87,7 @@ vi.mock('./components/charts/ConditionsChart.js', () => ({
 import { App } from './App.js';
 
 beforeEach(() => {
+  localStorage.clear();
   forecastRefetch.mockReset();
   currentSnowRefetch.mockReset();
   useForecastMock.mockReturnValue({
@@ -101,23 +108,25 @@ beforeEach(() => {
   });
 });
 
-test('renders current snow and changes selected forecast level', async () => {
+test('renders storm, current snow and changes selected forecast level', async () => {
   const user = userEvent.setup();
   render(<App />);
 
   expect(screen.getByRole('heading', { name: /Las Leñas Snow Monitor/i })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /Nieve actual reportada/i })).toBeInTheDocument();
-  expect(screen.getByText('snow-chart-summit')).toBeInTheDocument();
+  expect(screen.getByText(/Tormenta principal/i)).toBeInTheDocument();
+  expect(await screen.findByText('snow-chart-summit')).toBeInTheDocument();
 
-  await user.click(screen.getByRole('button', { name: /Base/i }));
-  expect(screen.getByText('snow-chart-base')).toBeInTheDocument();
+  const baseButtons = screen.getAllByRole('button', { name: /Base/i });
+  await user.click(baseButtons[0]!);
+  expect(await screen.findByText('snow-chart-base')).toBeInTheDocument();
 });
 
 test('changes mountain profile period and refreshes both endpoints', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: '15 días' }));
+  await user.click(await screen.findByRole('button', { name: '15 días' }));
   expect(screen.getByText(/próximas 15 días/i)).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: /Actualizar ahora/i }));
@@ -141,7 +150,7 @@ test('keeps the last successful forecast visible when a refresh fails', () => {
   expect(screen.getByText(/Actualización temporalmente no disponible/i)).toBeInTheDocument();
 });
 
-test('keeps forecast visible when current snow is unavailable', () => {
+test('keeps forecast visible when current snow is unavailable', async () => {
   useCurrentSnowMock.mockReturnValue({
     data: undefined,
     isPending: false,
@@ -153,6 +162,6 @@ test('keeps forecast visible when current snow is unavailable', () => {
 
   render(<App />);
 
-  expect(screen.getByText('snow-chart-summit')).toBeInTheDocument();
+  expect(await screen.findByText('snow-chart-summit')).toBeInTheDocument();
   expect(screen.getByText(/Fuentes bloqueadas temporalmente/i)).toBeInTheDocument();
 });

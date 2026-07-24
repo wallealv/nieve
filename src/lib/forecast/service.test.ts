@@ -26,10 +26,12 @@ function makeResult(model: ModelId, levelId: LevelId, snow: number): NormalizedM
   };
 }
 
-test('continues when one model fails and marks it failed', async () => {
-  const result = await buildForecastResponse(async (model, level) => {
+test('continues when one model batch fails and marks it failed', async () => {
+  const result = await buildForecastResponse(async (model, levels) => {
     if (model.id === 'icon') throw new Error('ICON unavailable');
-    return makeResult(model.id, level.id, model.id === 'ecmwf' ? 1 : 2);
+    return levels.map((level) =>
+      makeResult(model.id, level.id, model.id === 'ecmwf' ? 1 : 2),
+    );
   }, '2026-07-23T02:00:00Z');
 
   expect(result.models.find((model) => model.id === 'icon')?.status).toBe('failed');
@@ -40,11 +42,13 @@ test('continues when one model fails and marks it failed', async () => {
 
 test('preserves ICON absence after its horizon', async () => {
   const result = await buildForecastResponse(
-    async (model, level) =>
-      makeResult(
-        model.id,
-        level.id,
-        model.id === 'ecmwf' ? 1 : model.id === 'gfs' ? 2 : 3,
+    async (model, levels) =>
+      levels.map((level) =>
+        makeResult(
+          model.id,
+          level.id,
+          model.id === 'ecmwf' ? 1 : model.id === 'gfs' ? 2 : 3,
+        ),
       ),
     '2026-07-23T02:00:00Z',
   );
