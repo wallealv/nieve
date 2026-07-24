@@ -1,0 +1,320 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  background: #07111f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: #07111f;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(14, 116, 144, 0.17), transparent 29rem),
+    radial-gradient(circle at 90% 18%, rgba(59, 130, 246, 0.1), transparent 35rem),
+    linear-gradient(180deg, #07111f 0%, #060d18 46%, #040a12 100%);
+  color: #e2e8f0;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.66;
+}
+
+.app-shell {
+  width: min(100%, 1540px);
+  margin-inline: auto;
+  padding: 16px;
+}
+
+.surface {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(145deg, rgba(19, 37, 55, 0.76), rgba(8, 19, 32, 0.8));
+  padding: 1.25rem;
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(18px);
+}
+
+.eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.badge {
+  display: inline-flex;
+  min-height: 1.65rem;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.67rem;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badge-muted {
+  border-color: rgba(148, 163, 184, 0.13);
+  background: rgba(148, 163, 184, 0.075);
+  color: #a7b3c3;
+}
+
+.badge-info {
+  border-color: rgba(125, 211, 252, 0.18);
+  background: rgba(56, 189, 248, 0.1);
+  color: #bae6fd;
+}
+
+.badge-success {
+  border-color: rgba(110, 231, 183, 0.17);
+  background: rgba(52, 211, 153, 0.09);
+  color: #a7f3d0;
+}
+
+.badge-warning {
+  border-color: rgba(252, 211, 77, 0.2);
+  background: rgba(251, 191, 36, 0.095);
+  color: #fde68a;
+}
+
+.badge-danger {
+  border-color: rgba(253, 164, 175, 0.2);
+  background: rgba(244, 63, 94, 0.095);
+  color: #fecdd3;
+}
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(186, 230, 253, 0.25);
+  border-radius: 1rem;
+  padding: 0.72rem 1rem;
+  background: linear-gradient(135deg, #d9f7ff, #87dcfa);
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.18);
+  color: #082033;
+  font-size: 0.82rem;
+  font-weight: 750;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.button-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 16px 34px rgba(14, 165, 233, 0.24);
+}
+
+.segmented-control {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 0.2rem;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.9rem;
+  padding: 0.22rem;
+  background: rgba(2, 8, 16, 0.26);
+}
+
+.segmented-option {
+  flex: 0 0 auto;
+  border-radius: 0.68rem;
+  padding: 0.48rem 0.66rem;
+  color: #718096;
+  font-size: 0.7rem;
+  font-weight: 650;
+  transition: color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.segmented-option:hover {
+  color: #cbd5e1;
+}
+
+.segmented-option-active {
+  background: rgba(125, 211, 252, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.16);
+  color: #d9f7ff;
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(1px);
+  pointer-events: none;
+}
+
+.hero-orb-one {
+  top: -8rem;
+  right: -6rem;
+  width: 25rem;
+  height: 25rem;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.16), transparent 68%);
+}
+
+.hero-orb-two {
+  bottom: -12rem;
+  left: 25%;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.09), transparent 65%);
+}
+
+.mountain-level-card {
+  min-width: 8.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 1rem;
+  padding: 0.75rem;
+  background: rgba(5, 15, 26, 0.8);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(14px);
+}
+
+.snow-field {
+  position: absolute;
+  inset: 0;
+  opacity: 0.42;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.7) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(125, 211, 252, 0.6) 0 1px, transparent 1.5px);
+  background-position: 0 0, 18px 24px;
+  background-size: 44px 44px, 58px 58px;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+  animation: snow-drift 20s linear infinite;
+}
+
+.chart-tooltip {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  background: rgba(5, 15, 27, 0.96);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(16px);
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.skeleton::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.055), transparent);
+  animation: shimmer 1.7s infinite;
+}
+
+.recharts-default-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem 0.9rem;
+}
+
+.recharts-legend-item {
+  margin-right: 0 !important;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid #07111f;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes snow-drift {
+  to {
+    background-position: 44px 88px, -40px 82px;
+  }
+}
+
+@media (min-width: 640px) {
+  .app-shell {
+    padding: 24px;
+  }
+
+  .surface {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .mountain-level-card {
+    min-width: 7.1rem;
+    padding: 0.62rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
