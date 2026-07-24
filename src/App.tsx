@@ -1,29 +1,65 @@
-import { useState } from 'react';
-import { ConditionsChart } from './components/charts/ConditionsChart.js';
-import { SnowForecastChart } from './components/charts/SnowForecastChart.js';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { AlertSettings } from './components/dashboard/AlertSettings.js';
 import { CurrentSnowPanel } from './components/dashboard/CurrentSnowPanel.js';
 import { ErrorState } from './components/dashboard/ErrorState.js';
-import { ForecastMethodology } from './components/dashboard/ForecastMethodology.js';
-import { ForecastTable } from './components/dashboard/ForecastTable.js';
+import { ForecastHistory } from './components/dashboard/ForecastHistory.js';
 import { Header } from './components/dashboard/Header.js';
 import { LevelSummaryCard } from './components/dashboard/LevelSummaryCard.js';
 import { LoadingDashboard } from './components/dashboard/LoadingDashboard.js';
-import { ModelStatusList } from './components/dashboard/ModelStatusList.js';
-import { MountainProfile } from './components/dashboard/MountainProfile.js';
+import { SectionSkeleton } from './components/dashboard/SectionSkeleton.js';
+import { StickyLevelSelector } from './components/dashboard/StickyLevelSelector.js';
+import { StormSummary } from './components/dashboard/StormSummary.js';
 import { WarningBanner } from './components/dashboard/WarningBanner.js';
+import { useAlertSettings } from './hooks/useAlertSettings.js';
 import { useCurrentSnow } from './hooks/useCurrentSnow.js';
 import { useForecast } from './hooks/useForecast.js';
-import {
-  nextSnowEvent,
-  type ForecastPeriod,
-} from './lib/forecast/presentation.js';
+import { useForecastHistory } from './hooks/useForecastHistory.js';
+import { findPrimaryStorm } from './lib/forecast/storm.js';
+import type { ForecastPeriod } from './lib/forecast/presentation.js';
 import type { LevelId } from './types/forecast.js';
+
+const SnowForecastChart = lazy(() =>
+  import('./components/charts/SnowForecastChart.js').then((module) => ({
+    default: module.SnowForecastChart,
+  })),
+);
+const ConditionsChart = lazy(() =>
+  import('./components/charts/ConditionsChart.js').then((module) => ({
+    default: module.ConditionsChart,
+  })),
+);
+const ForecastTable = lazy(() =>
+  import('./components/dashboard/ForecastTable.js').then((module) => ({
+    default: module.ForecastTable,
+  })),
+);
+const ForecastMethodology = lazy(() =>
+  import('./components/dashboard/ForecastMethodology.js').then((module) => ({
+    default: module.ForecastMethodology,
+  })),
+);
+const ModelStatusList = lazy(() =>
+  import('./components/dashboard/ModelStatusList.js').then((module) => ({
+    default: module.ModelStatusList,
+  })),
+);
+const MountainProfile = lazy(() =>
+  import('./components/dashboard/MountainProfile.js').then((module) => ({
+    default: module.MountainProfile,
+  })),
+);
 
 export function App() {
   const forecast = useForecast();
   const currentSnow = useCurrentSnow();
   const [selectedLevelId, setSelectedLevelId] = useState<LevelId>('summit');
   const [period, setPeriod] = useState<ForecastPeriod>('7d');
+  const storm = useMemo(
+    () => (forecast.data ? findPrimaryStorm(forecast.data.levels) : null),
+    [forecast.data],
+  );
+  const history = useForecastHistory(forecast.data, currentSnow.data, storm);
+  const alerts = useAlertSettings(forecast.data);
 
   const selectedLevel =
     forecast.data?.levels.find((level) => level.level.id === selectedLevelId) ??
@@ -39,8 +75,6 @@ export function App() {
     );
   }
 
-  const summit = forecast.data.levels.find((level) => level.level.id === 'summit') ?? selectedLevel;
-  const snowEvent = nextSnowEvent(summit);
   const warnings = forecast.isError
     ? [
         ...forecast.data.warnings,
@@ -59,7 +93,6 @@ export function App() {
     <main className="app-shell">
       <Header
         updatedAt={forecast.data.resort.updatedAt}
-        event={snowEvent}
         isRefreshing={forecast.isFetching || currentSnow.isFetching}
         onRefresh={refreshAll}
       />
@@ -67,6 +100,8 @@ export function App() {
       <div className="mt-4">
         <WarningBanner warnings={warnings} />
       </div>
+
+      <StormSummary event={storm} />
 
       <CurrentSnowPanel
         data={currentSnow.data}
@@ -80,7 +115,7 @@ export function App() {
           <div>
             <p className="eyebrow">Pronóstico por nivel</p>
             <h2 id="levels-title" className="mt-1 text-xl font-semibold tracking-tight text-white">
-              Elegí una cota para explorar la nieve futura
+              Resumen de nieve futura por cota
             </h2>
           </div>
           <p className="hidden text-xs text-slate-500 sm:block">
@@ -99,26 +134,60 @@ export function App() {
         </div>
       </section>
 
+      <StickyLevelSelector
+        levels={forecast.data.levels}
+        selectedId={selectedLevel.level.id}
+        onSelect={setSelectedLevelId}
+      />
+
       <section className="mt-5 grid gap-4 2xl:grid-cols-[1.45fr_1fr]" aria-label="Pronóstico principal">
-        <SnowForecastChart level={selectedLevel} />
-        <MountainProfile
-          levels={forecast.data.levels}
-          period={period}
-          onPeriodChange={setPeriod}
+        <Suspense fallback={<SectionSkeleton label="Cargando gráfico de nieve…" />}>
+          <SnowForecastChart level={selectedLevel} />
+        </Suspense>
+        <Suspense fallback={<SectionSkeleton label="Cargando perfil de montaña…" />}>
+          <MountainProfile
+            levels={forecast.data.levels}
+            period={period}
+            onPeriodChange={setPeriod}
+          />
+        </Suspense>
+      </section>
+
+      <section className="mt-5 grid gap-4 xl:grid-cols-2" aria-label="Historial y alertas">
+        <ForecastHistory history={history} levelId={selectedLevel.level.id} />
+        <AlertSettings
+          settings={alerts.settings}
+          match={alerts.match}
+          notificationPermission={alerts.notificationPermission}
+          onChange={alerts.setSettings}
+          onRequestNotifications={alerts.requestNotifications}
         />
       </section>
 
-      <section className="mt-5 grid gap-4 xl:grid-cols-[1fr_1.08fr]" aria-label="Fuentes y metodología">
-        <ModelStatusList models={forecast.data.models} />
-        <ForecastMethodology />
-      </section>
+      <details className="mt-5 rounded-2xl border border-white/8 bg-white/[0.018] p-4 sm:p-5">
+        <summary className="min-h-11 cursor-pointer list-none py-2 text-sm font-semibold text-slate-200">
+          Fuentes, estado de modelos y metodología
+        </summary>
+        <section className="mt-3 grid gap-4 xl:grid-cols-[1fr_1.08fr]" aria-label="Fuentes y metodología">
+          <Suspense fallback={<SectionSkeleton />}>
+            <ModelStatusList models={forecast.data.models} />
+          </Suspense>
+          <Suspense fallback={<SectionSkeleton />}>
+            <ForecastMethodology />
+          </Suspense>
+        </section>
+      </details>
 
       <section className="mt-5" aria-label="Condiciones complementarias">
-        <ConditionsChart level={selectedLevel} />
+        <Suspense fallback={<SectionSkeleton label="Cargando condiciones…" />}>
+          <ConditionsChart level={selectedLevel} />
+        </Suspense>
       </section>
 
       <section className="mt-5" aria-label="Tabla de pronóstico diario">
-        <ForecastTable level={selectedLevel} />
+        <Suspense fallback={<SectionSkeleton label="Cargando tabla diaria…" />}>
+          <ForecastTable level={selectedLevel} />
+        </Suspense>
       </section>
 
       <footer className="px-2 pb-5 pt-8 text-center text-xs leading-5 text-slate-600">
