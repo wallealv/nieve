@@ -7,9 +7,15 @@ import type { CurrentSnowResponse } from './types/currentSnow.js';
 const forecastRefetch = vi.fn();
 const currentSnowRefetch = vi.fn();
 const hourlyRefetch = vi.fn();
+const modelRunsRefetch = vi.fn();
+const roadRefetch = vi.fn();
+const webcamRefetch = vi.fn();
 const useForecastMock = vi.fn();
 const useCurrentSnowMock = vi.fn();
 const useHourlyForecastMock = vi.fn();
+const useModelRunsMock = vi.fn();
+const useRoadStatusMock = vi.fn();
+const useWebcamStatusMock = vi.fn();
 
 const currentSnowData: CurrentSnowResponse = {
   resort: 'Las Leñas',
@@ -66,17 +72,12 @@ const currentSnowData: CurrentSnowResponse = {
   warnings: [],
 };
 
-vi.mock('./hooks/useForecast.js', () => ({
-  useForecast: () => useForecastMock(),
-}));
-
-vi.mock('./hooks/useCurrentSnow.js', () => ({
-  useCurrentSnow: () => useCurrentSnowMock(),
-}));
-
-vi.mock('./hooks/useHourlyForecast.js', () => ({
-  useHourlyForecast: () => useHourlyForecastMock(),
-}));
+vi.mock('./hooks/useForecast.js', () => ({ useForecast: () => useForecastMock() }));
+vi.mock('./hooks/useCurrentSnow.js', () => ({ useCurrentSnow: () => useCurrentSnowMock() }));
+vi.mock('./hooks/useHourlyForecast.js', () => ({ useHourlyForecast: () => useHourlyForecastMock() }));
+vi.mock('./hooks/useModelRuns.js', () => ({ useModelRuns: () => useModelRunsMock() }));
+vi.mock('./hooks/useRoadStatus.js', () => ({ useRoadStatus: () => useRoadStatusMock() }));
+vi.mock('./hooks/useWebcamStatus.js', () => ({ useWebcamStatus: () => useWebcamStatusMock() }));
 
 vi.mock('./components/charts/SnowForecastChart.js', () => ({
   SnowForecastChart: ({ level }: { level: { level: { id: string } } }) => (
@@ -92,11 +93,20 @@ vi.mock('./components/charts/ConditionsChart.js', () => ({
 
 import { App } from './App.js';
 
+function secondaryQuery(refetch: ReturnType<typeof vi.fn>) {
+  return {
+    data: undefined,
+    isPending: false,
+    isError: false,
+    isFetching: false,
+    error: null,
+    refetch,
+  };
+}
+
 beforeEach(() => {
   localStorage.clear();
-  forecastRefetch.mockReset();
-  currentSnowRefetch.mockReset();
-  hourlyRefetch.mockReset();
+  [forecastRefetch, currentSnowRefetch, hourlyRefetch, modelRunsRefetch, roadRefetch, webcamRefetch].forEach((mock) => mock.mockReset());
   useForecastMock.mockReturnValue({
     data: makeForecastFixture(),
     isPending: false,
@@ -113,14 +123,10 @@ beforeEach(() => {
     error: null,
     refetch: currentSnowRefetch,
   });
-  useHourlyForecastMock.mockReturnValue({
-    data: undefined,
-    isPending: false,
-    isError: false,
-    isFetching: false,
-    error: null,
-    refetch: hourlyRefetch,
-  });
+  useHourlyForecastMock.mockReturnValue(secondaryQuery(hourlyRefetch));
+  useModelRunsMock.mockReturnValue(secondaryQuery(modelRunsRefetch));
+  useRoadStatusMock.mockReturnValue(secondaryQuery(roadRefetch));
+  useWebcamStatusMock.mockReturnValue(secondaryQuery(webcamRefetch));
 });
 
 test('renders storm, current snow and changes selected forecast level', async () => {
@@ -129,6 +135,7 @@ test('renders storm, current snow and changes selected forecast level', async ()
 
   expect(screen.getByRole('heading', { name: /Las Leñas Snow Monitor/i })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /Nieve actual reportada/i })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /Estado de la RP 222/i })).toBeInTheDocument();
   expect(screen.getByText(/Tormenta principal/i)).toBeInTheDocument();
   expect(await screen.findByText('snow-chart-summit')).toBeInTheDocument();
 
@@ -148,6 +155,9 @@ test('changes mountain profile period and refreshes all endpoints', async () => 
   expect(forecastRefetch).toHaveBeenCalledTimes(1);
   expect(currentSnowRefetch).toHaveBeenCalledTimes(1);
   expect(hourlyRefetch).toHaveBeenCalledTimes(1);
+  expect(modelRunsRefetch).toHaveBeenCalledTimes(1);
+  expect(roadRefetch).toHaveBeenCalledTimes(1);
+  expect(webcamRefetch).toHaveBeenCalledTimes(1);
 });
 
 test('keeps the last successful forecast visible when a refresh fails', () => {
