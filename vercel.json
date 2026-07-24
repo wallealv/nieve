@@ -5,7 +5,8 @@
   "outputDirectory": "dist",
   "git": {
     "deploymentEnabled": {
-      "feat/snow-monitor-v2": false
+      "feat/snow-monitor-v2": false,
+      "fix/off-piste-observation": false
     }
   }
 }
