@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { createClimatologyHandler } from './climatology.js';
+import { createClimatologyHandler } from '../../api/climatology.js';
 
 describe('climatology API', () => {
   test('returns a daily cached modeled baseline', async () => {
