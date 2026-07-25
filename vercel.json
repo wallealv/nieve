@@ -2,13 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "git": {
-    "deploymentEnabled": {
-      "feat/snow-monitor-v2": false,
-      "fix/off-piste-observation": false,
-      "feat/snow-monitor-v3": false,
-      "fix/vercel-function-count": false
-    }
-  }
+  "outputDirectory": "dist"
 }
