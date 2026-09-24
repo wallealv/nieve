@@ -65,4 +65,11 @@ export const FORECAST_HORIZONS = {
   maximumDay: 14,
 } as const;
 
+// Skill-weighted consensus: compare each model against the official report over this many
+// days, and only weight a level once every model has at least `minSamples` comparisons there.
+export const FORECAST_CALIBRATION = {
+  windowDays: 60,
+  minSamples: 10,
+} as const;
+
 export const REFRESH_INTERVAL_MS = 3 * 60 * 60 * 1000;

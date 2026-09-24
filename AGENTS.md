@@ -11,7 +11,7 @@ Reglas completas y runbook: `wallealv-id/docs/shared-supabase.md`. Resumen oblig
 
 - **Nunca** crear `supabase/migrations` en este repo ni correr `supabase db push` desde acá: dos
   historias de migraciones sobre el mismo proyecto se rompen entre sí.
-  `tests/database/no-local-migrations.test.ts` falla si aparece esa carpeta.
+  `tests/database/no-local-migrations.test.ts` falla si aparece esa carpeta con archivos `.sql`.
 - Cambio de esquema = PR en `wallealv-id` con `npx supabase migration new nieve_<descripcion>`
   (timestamp UTC, scope `nieve`) + test pgTAP `supabase/tests/nieve_<NNN>_<descripcion>.test.sql`.
   Se aplica **antes** de deployar el código de nieve que lo usa, y tiene que ser compatible con el

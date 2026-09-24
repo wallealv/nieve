@@ -1,4 +1,6 @@
 import { Info, ShieldCheck, Telescope, TriangleAlert } from 'lucide-react';
+import { FORECAST_MODELS, MOUNTAIN_LEVELS } from '../../config/mountain.js';
+import type { ForecastCalibration } from '../../types/forecast.js';
 import { Card, CardDescription, CardHeader, CardTitle } from '../ui/Card.js';
 
 const bands = [
@@ -25,7 +27,57 @@ const bands = [
   },
 ] as const;
 
-export function ForecastMethodology() {
+/** Whole percentages that add up to 100 (largest remainder). */
+function toPercentages(weights: number[]): number[] {
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (total <= 0) return weights.map(() => 0);
+  const exact = weights.map((weight) => (weight / total) * 100);
+  const result = exact.map(Math.floor);
+  const missing = 100 - result.reduce((sum, value) => sum + value, 0);
+  exact
+    .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+    .sort((left, right) => right.remainder - left.remainder)
+    .slice(0, missing)
+    .forEach(({ index }) => {
+      result[index]! += 1;
+    });
+  return result;
+}
+
+function calibrationSummary(calibration: ForecastCalibration | undefined): string | null {
+  if (!calibration || calibration.status === 'unavailable') return null;
+
+  if (calibration.status === 'active') {
+    const level =
+      calibration.levels.find((item) => item.level === 'mid' && item.active) ??
+      calibration.levels.find((item) => item.active);
+    if (!level) return null;
+    const percentages = toPercentages(level.models.map((model) => model.weight ?? 0));
+    const shares = level.models
+      .map((model, index) => {
+        const name = FORECAST_MODELS.find((item) => item.id === model.model)?.shortName ?? model.model;
+        return `${name} ${percentages[index]} %`;
+      })
+      .join(', ');
+    const levelName = MOUNTAIN_LEVELS.find((item) => item.id === level.level)?.name ?? level.level;
+    return `Consenso ponderado por el error real de cada modelo en Las Leñas (${levelName}, últimos ${calibration.windowDays} días): ${shares}.`;
+  }
+
+  const progress = Math.min(
+    calibration.minSamples,
+    Math.max(
+      0,
+      ...calibration.levels.map((level) =>
+        level.models.length ? Math.min(...level.models.map((model) => model.samples)) : 0,
+      ),
+    ),
+  );
+  return `Guardando pronósticos y partes oficiales para calibrar los modelos (${progress} de ${calibration.minSamples} comparaciones).`;
+}
+
+export function ForecastMethodology({ calibration }: { calibration?: ForecastCalibration }) {
+  const calibrationText = calibrationSummary(calibration);
+
   return (
     <Card>
       <CardHeader>
@@ -59,6 +111,10 @@ export function ForecastMethodology() {
           );
         })}
       </div>
+
+      {calibrationText ? (
+        <p className="mt-4 text-xs leading-5 text-slate-400">{calibrationText}</p>
+      ) : null}
 
       <p className="mt-4 text-xs leading-5 text-slate-500">
         El índice de confianza es interno; no representa una probabilidad meteorológica oficial.
