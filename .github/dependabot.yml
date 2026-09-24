@@ -1,8 +1,8 @@
 # Dependency updates. Security fixes are raised immediately by GitHub, regardless of this schedule.
 # Minor and patch bumps arrive as one grouped PR per week; majors come one by one. Nothing merges on
 # its own: every pull request is assigned to wallealv so GitHub notifies him, and he decides.
-# Vercel builds a preview for Dependabot branches (vercel.json has no branch filter). npm updates bump
-# package.json and package-lock.json together; CI installs exactly the locked tree with npm ci.
+# Vercel only deploys main (vercel.json git.deploymentEnabled), so Dependabot branches get CI but no preview.
+# npm updates bump package.json and package-lock.json together; CI installs exactly the locked tree with npm ci.
 version: 2
 updates:
   - package-ecosystem: npm
