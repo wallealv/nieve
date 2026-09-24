@@ -1,0 +1,36 @@
+# Dependency updates. Security fixes are raised immediately by GitHub, regardless of this schedule.
+# Minor and patch bumps arrive as one grouped PR per week; majors come one by one. Nothing merges on
+# its own: every pull request is assigned to wallealv so GitHub notifies him, and he decides.
+# Vercel builds a preview for Dependabot branches (vercel.json has no branch filter). There is no package-lock.json
+# on purpose, so npm updates only touch package.json.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: America/Argentina/Buenos_Aires
+    open-pull-requests-limit: 5
+    labels: [dependencias]
+    assignees: [wallealv]
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
+    groups:
+      # One PR a week with every safe bump: runtime and tooling together.
+      minor-and-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencias]
+    assignees: [wallealv]
+    groups:
+      actions:
+        patterns: ['*']
