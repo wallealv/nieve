@@ -1,0 +1,63 @@
+# Dependency updates: ONE pull request a week.
+# Every Monday at 09:00 (Buenos Aires) Dependabot opens a single PR for the "semanal" group with
+# every npm update and every GitHub Actions update, majors included. The Monday review (Claude, on
+# wallealv's behalf) checks it and merges it when CI is green, or closes it. If it is not merged,
+# the next Monday may open a second PR beside it instead of refreshing it (dependabot-core #12957).
+# Security fixes do not wait for Monday and never ride in the weekly PR: GitHub raises them when
+# an advisory appears. The "seguridad-*" groups below ask for one PR per ecosystem instead of one
+# per package (GitHub does not always honor this yet).
+# commit-message, open-pull-requests-limit, target-branch, milestone and pull-request-branch-name
+# belong to the group only. On an updates entry, GitHub rejects this whole file and every update
+# stops.
+# Dependabot branches do not deploy (see "git.deploymentEnabled" in vercel.json). npm updates bump
+# package.json and package-lock.json together; CI installs exactly the locked tree with npm ci.
+version: 2
+
+multi-ecosystem-groups:
+  semanal:
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: America/Argentina/Buenos_Aires
+    labels: [dependencias]
+    assignees: [wallealv]
+    commit-message:
+      prefix: chore
+      include: scope   # title: chore(deps): Bump the "semanal" group with N updates across ...
+
+# Every entry repeats labels and assignees: security PRs only read the entry, and the weekly PR has
+# been seen to drop group-level labels. Entries carry no schedule: the group's schedule drives them.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    multi-ecosystem-group: semanal
+    patterns: ['*']   # everything, majors included (no update-types filter anywhere)
+    labels: [dependencias]
+    assignees: [wallealv]
+    ignore:
+      # Production runs Node 24 (pinned): @types/node never jumps a major on its own.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # eslint-config-next / typescript-eslint do not support TypeScript 7, and ESLint 10 breaks
+      # eslint-config-next's react plugin (both failed CI in crm-wallealv on 2026-09-24). One breaking
+      # major would block the whole weekly PR, so hold these until the tooling catches up.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+    groups:
+      seguridad-npm:
+        applies-to: security-updates
+        patterns: ['*']   # no other filter: a filtered-out advisory gets no PR at all
+
+  - package-ecosystem: github-actions
+    directory: /
+    multi-ecosystem-group: semanal
+    patterns: ['*']
+    labels: [dependencias]
+    assignees: [wallealv]
+    groups:
+      seguridad-actions:
+        applies-to: security-updates
+        patterns: ['*']

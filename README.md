@@ -175,7 +175,7 @@ Las coordenadas son puntos representativos aproximados, centralizados en `src/co
 
 ## Desarrollo local
 
-Requiere Node.js 22.12 o posterior.
+Requiere Node.js 24 (la versión de `.nvmrc`, la misma que usan Vercel y CI).
 
 ```bash
 npm install
@@ -213,7 +213,7 @@ Todos usan `stale-while-revalidate` cuando corresponde.
 
 ## Despliegue
 
-El proyecto está configurado para Vite y Vercel Functions y no requiere variables de entorno. Los previews de `feat/snow-monitor-v3` están deshabilitados; el merge a `main` genera el despliegue de producción.
+El proyecto está configurado para Vite y Vercel Functions y no requiere variables de entorno. Vercel despliega solo `main` (`git.deploymentEnabled` en `vercel.json`): las demás ramas no generan previews y el merge a `main` genera el despliegue de producción.
 
 ## Fuentes
 
