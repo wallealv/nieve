@@ -22,10 +22,8 @@ jobs:
         with:
           node-version: 22.16.0
 
-      # npm 10's arborist crashes resolving the vitest -> jsdom -> canvas peer set
-      # ("Cannot read properties of null (reading 'edgesOut')"); npm 11 resolves it.
       - name: Install dependencies
-        run: npx -y npm@11 install --no-audit --no-fund
+        run: npm ci
 
       - name: Lint
         run: npm run lint
