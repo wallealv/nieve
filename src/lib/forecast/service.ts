@@ -1,14 +1,18 @@
 import {
+  FORECAST_CALIBRATION,
   FORECAST_HORIZONS,
   FORECAST_MODELS,
   MOUNTAIN_LEVELS,
   RESORT,
 } from '../../config/mountain.js';
 import type {
+  ForecastCalibration,
   ForecastModelConfig,
   ForecastResponse,
   LevelDailyForecast,
   LevelForecast,
+  LevelId,
+  ModelId,
   ModelStatus,
   MountainLevelConfig,
   ModelValue,
@@ -26,6 +30,8 @@ export type ForecastFetcher = (
   model: ForecastModelConfig,
   levels: readonly MountainLevelConfig[],
 ) => Promise<NormalizedModelLevel[]>;
+
+type LevelWeights = ReadonlyMap<ModelId, number>;
 
 interface SettledEntry {
   model: ForecastModelConfig;
@@ -58,6 +64,54 @@ function totalForHours(
 ): number | null {
   if (!result) return null;
   return round(sumNullable(result.hourlySnowfallCm.slice(0, hours)));
+}
+
+function levelWeights(
+  calibration: ForecastCalibration,
+  levelId: LevelId,
+): LevelWeights | null {
+  const level = calibration.levels.find((item) => item.level === levelId);
+  if (!level?.active) return null;
+  const weights = new Map<ModelId, number>();
+  level.models.forEach((model) => {
+    if (model.weight !== null && Number.isFinite(model.weight) && model.weight > 0) {
+      weights.set(model.model, model.weight);
+    }
+  });
+  return weights.size > 0 ? weights : null;
+}
+
+/**
+ * The multimodel central estimate: the plain median, or — when the level is calibrated — the
+ * mean weighted by each model's measured skill, renormalized over the models that have a value
+ * (e.g. once ICON's horizon has ended only ECMWF and GFS share the weight).
+ */
+function centralEstimate(
+  values: ReadonlyArray<{ model: ModelId; value: number | null }>,
+  weights: LevelWeights | null,
+): number | null {
+  if (!weights) return median(values.map((item) => item.value));
+
+  let weightedTotal = 0;
+  let weightSum = 0;
+  values.forEach(({ model, value }) => {
+    const weight = weights.get(model);
+    if (value === null || !Number.isFinite(value) || weight === undefined) return;
+    weightedTotal += value * weight;
+    weightSum += weight;
+  });
+  return weightSum > 0
+    ? weightedTotal / weightSum
+    : median(values.map((item) => item.value));
+}
+
+function unavailableCalibration(): ForecastCalibration {
+  return {
+    status: 'unavailable',
+    windowDays: FORECAST_CALIBRATION.windowDays,
+    minSamples: FORECAST_CALIBRATION.minSamples,
+    levels: [],
+  };
 }
 
 function statusForModel(
@@ -118,6 +172,7 @@ function buildLevelForecast(
   level: MountainLevelConfig,
   dates: string[],
   successful: Map<string, NormalizedModelLevel>,
+  weights: LevelWeights | null,
 ): LevelForecast {
   let cumulative = 0;
   let hasCumulative = false;
@@ -133,7 +188,12 @@ function buildLevelForecast(
     });
     const snowfallValues = modelValues.map((value) => value.snowfallCm);
     const range = nullableRange(snowfallValues);
-    const snowfallMedianCm = round(median(snowfallValues));
+    const snowfallMedianCm = round(
+      centralEstimate(
+        modelValues.map((value) => ({ model: value.model, value: value.snowfallCm })),
+        weights,
+      ),
+    );
     const confidence = calculateConfidence({
       values: snowfallValues,
       dayIndex,
@@ -179,8 +239,18 @@ function buildLevelForecast(
   const results = FORECAST_MODELS.map((model) =>
     successful.get(`${model.id}:${level.id}`),
   );
-  const hours24 = round(median(results.map((result) => totalForHours(result, 24))));
-  const hours72 = round(median(results.map((result) => totalForHours(result, 72))));
+  const totalsFor = (hours: number) =>
+    round(
+      centralEstimate(
+        FORECAST_MODELS.map((model, index) => ({
+          model: model.id,
+          value: totalForHours(results[index], hours),
+        })),
+        weights,
+      ),
+    );
+  const hours24 = totalsFor(24);
+  const hours72 = totalsFor(72);
 
   return {
     level,
@@ -255,9 +325,15 @@ function entriesFromBatch(
   });
 }
 
+/**
+ * `calibration` (skill per model and level, loaded server-side from the database) switches the
+ * levels it marks active from the plain multimodel median to a skill-weighted mean. Without it
+ * the numbers are exactly the plain-median ones and the response reports 'unavailable'.
+ */
 export async function buildForecastResponse(
   fetcher: ForecastFetcher = fetchOpenMeteoModel,
   updatedAt = new Date().toISOString(),
+  calibration: ForecastCalibration = unavailableCalibration(),
 ): Promise<ForecastResponse> {
   const results = await Promise.allSettled(
     FORECAST_MODELS.map((model) => fetcher(model, MOUNTAIN_LEVELS)),
@@ -293,7 +369,7 @@ export async function buildForecastResponse(
     );
   const dates = buildDates(successful);
   const levels = MOUNTAIN_LEVELS.map((level) =>
-    buildLevelForecast(level, dates, successful),
+    buildLevelForecast(level, dates, successful, levelWeights(calibration, level.id)),
   );
 
   return {
@@ -307,6 +383,7 @@ export async function buildForecastResponse(
     models,
     levels,
     dailyConsensus: buildDailyConsensus(levels),
+    calibration,
     warnings,
   };
 }

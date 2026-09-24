@@ -229,7 +229,7 @@ export function App() {
       ) : null}
 
       <section className="mt-5 grid gap-4 2xl:grid-cols-[1.45fr_1fr]" aria-label="Pronóstico principal">
-        <Suspense fallback={<SectionSkeleton label="Cargando gráfico de nieve…" />}><SnowForecastChart level={selectedLevel} /></Suspense>
+        <Suspense fallback={<SectionSkeleton label="Cargando gráfico de nieve…" />}><SnowForecastChart level={selectedLevel} calibration={forecast.data.calibration} /></Suspense>
         <Suspense fallback={<SectionSkeleton label="Cargando perfil de montaña…" />}>
           <MountainProfile levels={forecast.data.levels} period={period} onPeriodChange={preferences.setPeriod} />
         </Suspense>
@@ -273,7 +273,7 @@ export function App() {
         <summary className="min-h-11 cursor-pointer list-none py-2 text-sm font-semibold text-slate-200">Fuentes, estado de modelos, datos locales y metodología</summary>
         <section className="mt-3 grid gap-4 xl:grid-cols-[1fr_1.08fr]" aria-label="Fuentes y metodología">
           <Suspense fallback={<SectionSkeleton />}><ModelStatusList models={forecast.data.models} /></Suspense>
-          <Suspense fallback={<SectionSkeleton />}><ForecastMethodology /></Suspense>
+          <Suspense fallback={<SectionSkeleton />}><ForecastMethodology calibration={forecast.data.calibration} /></Suspense>
           <div className="xl:col-span-2"><LocalDataSettings /></div>
         </section>
       </details>

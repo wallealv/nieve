@@ -98,6 +98,12 @@ export function makeForecastFixture(): ForecastResponse {
       confidenceScore: levels[1]!.daily[dayIndex]!.confidenceScore,
       confidenceLabel: levels[1]!.daily[dayIndex]!.confidenceLabel,
     })),
+    calibration: {
+      status: 'unavailable',
+      windowDays: 60,
+      minSamples: 10,
+      levels: [],
+    },
     warnings: [],
   };
 }

@@ -1,4 +1,7 @@
 import { buildCurrentSnowResponse } from '../src/lib/current-snow/service.js';
+import { getDatabaseClient, runSafely } from '../src/lib/database/client.js';
+import { saveSnowObservations } from '../src/lib/database/snowObservations.js';
+import type { CurrentSnowResponse } from '../src/types/currentSnow.js';
 
 const CACHE_CONTROL =
   'public, max-age=0, s-maxage=3600, stale-while-revalidate=10800';
@@ -35,8 +38,42 @@ export function createCurrentSnowHandler(loadCurrentSnow: CurrentSnowLoader) {
   };
 }
 
+export interface CurrentSnowLoaderDependencies {
+  buildCurrentSnow: () => Promise<CurrentSnowResponse>;
+  saveObservations: (currentSnow: CurrentSnowResponse) => Promise<boolean>;
+}
+
+const defaultCurrentSnowDependencies: CurrentSnowLoaderDependencies = {
+  buildCurrentSnow: () => buildCurrentSnowResponse(),
+  saveObservations: (currentSnow) =>
+    saveSnowObservations(getDatabaseClient(), currentSnow),
+};
+
+/**
+ * Current snow → observations saved (they are the ground truth for model skill) → response.
+ * Saving is best effort and never changes the HTTP response.
+ */
+export function createCurrentSnowLoader(
+  overrides: Partial<CurrentSnowLoaderDependencies> = {},
+) {
+  const { buildCurrentSnow, saveObservations } = {
+    ...defaultCurrentSnowDependencies,
+    ...overrides,
+  };
+
+  return async function loadCurrentSnow(): Promise<CurrentSnowResponse> {
+    const currentSnow = await buildCurrentSnow();
+    await runSafely(
+      'save snow observations',
+      () => saveObservations(currentSnow),
+      false,
+    );
+    return currentSnow;
+  };
+}
+
 export const handleCurrentSnowRequest = createCurrentSnowHandler(
-  buildCurrentSnowResponse,
+  createCurrentSnowLoader(),
 );
 
 export default {
