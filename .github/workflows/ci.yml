@@ -22,6 +22,11 @@ jobs:
         with:
           node-version: 22.16.0
 
+      # npm 10 (bundled with Node 22) crashes resolving this dependency tree without a lockfile
+      # ("Cannot read properties of null (reading 'edgesOut')"); npm 11 installs it cleanly.
+      - name: Upgrade npm
+        run: npm install -g npm@11 --no-audit --no-fund
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
