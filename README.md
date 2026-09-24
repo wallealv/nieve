@@ -175,7 +175,7 @@ Las coordenadas son puntos representativos aproximados, centralizados en `src/co
 
 ## Desarrollo local
 
-Requiere Node.js 22.12 o posterior.
+Requiere Node.js 24 (la versión de `.nvmrc`, la misma que usan Vercel y CI).
 
 ```bash
 npm install
