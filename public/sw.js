@@ -1,4 +1,6 @@
-const VERSION = 'snow-monitor-v3-1';
+// Bump on every release that changes the UI: browsers only install a new worker when this file
+// changes, and until then the old shell and bundles keep being served cache-first.
+const VERSION = 'snow-monitor-v3-2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const SHELL = ['/', '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.svg', '/icons/icon-512.svg'];

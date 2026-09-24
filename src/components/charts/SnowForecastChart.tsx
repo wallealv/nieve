@@ -12,7 +12,7 @@ import {
   YAxis,
 } from 'recharts';
 import { formatCm, formatDay, formatLongDay } from '../../lib/format.js';
-import type { LevelForecast } from '../../types/forecast.js';
+import type { ForecastCalibration, LevelForecast, LevelId } from '../../types/forecast.js';
 import { Card, CardDescription, CardHeader, CardTitle } from '../ui/Card.js';
 
 interface SnowChartDatum {
@@ -80,7 +80,30 @@ function HorizonLegend() {
   );
 }
 
-export function SnowForecastChart({ level }: { level: LevelForecast }) {
+/**
+ * Mirrors the server (`levelWeights` in lib/forecast/service.ts): the bars are skill-weighted only
+ * when this level's calibration is active with usable weights. Responses cached before calibration
+ * existed have no `calibration` field, and those bars are the plain median.
+ */
+function isSkillWeighted(calibration: ForecastCalibration | undefined, levelId: LevelId): boolean {
+  if (calibration?.status !== 'active') return false;
+  const level = calibration.levels.find((item) => item.level === levelId);
+  return Boolean(
+    level?.active &&
+      level.models.some((model) => model.weight !== null && Number.isFinite(model.weight) && model.weight > 0),
+  );
+}
+
+export function SnowForecastChart({
+  level,
+  calibration,
+}: {
+  level: LevelForecast;
+  calibration?: ForecastCalibration;
+}) {
+  const barsLabel = isSkillWeighted(calibration, level.level.id)
+    ? 'consenso ponderado por el error de cada modelo'
+    : 'mediana de modelos';
   const data: SnowChartDatum[] = level.daily.map((day) => ({
     date: day.date,
     snowfallMedianCm: day.snowfallMedianCm,
@@ -100,7 +123,7 @@ export function SnowForecastChart({ level }: { level: LevelForecast }) {
         <div>
           <CardTitle>Nieve diaria y acumulada · {level.level.name}</CardTitle>
           <CardDescription>
-            Barras: mediana de modelos. Banda: mínimo–máximo. Línea: acumulado.
+            Barras: {barsLabel}. Banda: mínimo–máximo. Línea: acumulado.
           </CardDescription>
         </div>
         <HorizonLegend />

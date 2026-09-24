@@ -229,7 +229,7 @@ export function App() {
       ) : null}
 
       <section className="mt-5 grid gap-4 2xl:grid-cols-[1.45fr_1fr]" aria-label="Pronóstico principal">
-        <Suspense fallback={<SectionSkeleton label="Cargando gráfico de nieve…" />}><SnowForecastChart level={selectedLevel} /></Suspense>
+        <Suspense fallback={<SectionSkeleton label="Cargando gráfico de nieve…" />}><SnowForecastChart level={selectedLevel} calibration={forecast.data.calibration} /></Suspense>
         <Suspense fallback={<SectionSkeleton label="Cargando perfil de montaña…" />}>
           <MountainProfile levels={forecast.data.levels} period={period} onPeriodChange={preferences.setPeriod} />
         </Suspense>

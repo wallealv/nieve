@@ -72,9 +72,13 @@ vi.mock('./components/map/RegionalSnowMapLoader.js', () => ({
 }));
 
 vi.mock('./components/charts/SnowForecastChart.js', () => ({
-  SnowForecastChart: ({ level }: { level: { level: { id: string } } }) => (
-    <div>snow-chart-{level.level.id}</div>
-  ),
+  SnowForecastChart: ({
+    level,
+    calibration,
+  }: {
+    level: { level: { id: string } };
+    calibration?: { status: string };
+  }) => <div data-calibration={calibration?.status}>snow-chart-{level.level.id}</div>,
 }));
 
 vi.mock('./components/charts/ConditionsChart.js', () => ({
@@ -169,6 +173,26 @@ test('keeps the last successful forecast visible when a refresh fails', () => {
 
   expect(screen.getByRole('heading', { name: /Las Leñas Snow Monitor/i })).toBeInTheDocument();
   expect(screen.getByText(/Actualización temporalmente no disponible/i)).toBeInTheDocument();
+});
+
+test('passes the forecast calibration to the snow chart, and none for an old cached response', async () => {
+  const forecast = makeForecastFixture();
+  forecast.calibration = { ...forecast.calibration, status: 'insufficient-data' };
+  useForecastMock.mockReturnValue({
+    data: forecast, isPending: false, isError: false, isFetching: false,
+    error: null, refetch: forecastRefetch,
+  });
+  const { unmount } = render(<App />);
+  expect(await screen.findByText('snow-chart-summit')).toHaveAttribute('data-calibration', 'insufficient-data');
+  unmount();
+
+  // Responses cached by the service worker before calibration existed have no such field.
+  useForecastMock.mockReturnValue({
+    data: { ...makeForecastFixture(), calibration: undefined }, isPending: false, isError: false,
+    isFetching: false, error: null, refetch: forecastRefetch,
+  });
+  render(<App />);
+  expect(await screen.findByText('snow-chart-summit')).not.toHaveAttribute('data-calibration');
 });
 
 test('keeps forecast visible when current snow is unavailable', async () => {

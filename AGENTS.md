@@ -23,8 +23,10 @@ Reglas completas y runbook: `wallealv-id/docs/shared-supabase.md`. Resumen oblig
   cada función. Nunca tocar otro schema (`public`, `flightly`, `wallealv_com`, `auth`, ...): lo
   transversal va en una migración `shared`.
 - Una migración ya mergeada no se edita ni se renombra: se escribe otra. Si `main` de wallealv-id
-  recibió una migración más nueva que la tuya, renombrala con un timestamp nuevo antes de mergear
-  (CI de wallealv-id lo verifica).
+  recibió una migración más nueva que la tuya, renombrala con un timestamp nuevo antes de mergear.
+  CI de wallealv-id lo verifica al correr en el PR (contra la punta de `main` en ese momento) y otra
+  vez en el push a `main`; no vuelve a correr solo cuando `main` avanza, así que actualizá el PR con
+  `main` antes de mergear.
 - Si nieve algún día tiene cuentas de usuario: sus tablas con `user_id` se agregan a
   `public.account_footprint` y el borrado de cuenta sigue la regla de las otras apps (nunca
   `auth.admin.deleteUser` sin revisar el footprint).
