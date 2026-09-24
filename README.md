@@ -190,7 +190,7 @@ Las coordenadas son puntos representativos aproximados, centralizados en `src/co
 
 ## Desarrollo local
 
-Requiere Node.js 22.12 o posterior.
+Requiere Node.js 24 (la versión de `.nvmrc`, la misma que usan Vercel y CI).
 
 ```bash
 npm install
@@ -228,7 +228,7 @@ Todos usan `stale-while-revalidate` cuando corresponde.
 
 ## Despliegue
 
-El proyecto está configurado para Vite y Vercel Functions. En producción, `SUPABASE_URL` y `SUPABASE_SECRET_KEY` (solo servidor) activan la [base de datos](#base-de-datos); sin ellas la app funciona igual, sin calibración. `vercel.json` define los dos crons diarios. Los previews de `feat/snow-monitor-v3` están deshabilitados; el merge a `main` genera el despliegue de producción.
+El proyecto está configurado para Vite y Vercel Functions. En producción, `SUPABASE_URL` y `SUPABASE_SECRET_KEY` (solo servidor) activan la [base de datos](#base-de-datos); sin ellas la app funciona igual, sin calibración. `vercel.json` define los dos crons diarios. Vercel despliega solo `main` (`git.deploymentEnabled` en `vercel.json`): las demás ramas no generan previews y el merge a `main` genera el despliegue de producción.
 
 ## Fuentes
 
