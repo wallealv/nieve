@@ -27,8 +27,14 @@ Reglas completas y runbook: `wallealv-id/docs/shared-supabase.md`. Resumen oblig
   CI de wallealv-id lo verifica al correr en el PR (contra la punta de `main` en ese momento) y otra
   vez en el push a `main`; no vuelve a correr solo cuando `main` avanza, así que actualizá el PR con
   `main` antes de mergear.
-- Si nieve algún día tiene cuentas de usuario: sus tablas con `user_id` se agregan a
-  `public.account_footprint` y el borrado de cuenta sigue la regla de las otras apps (nunca
-  `auth.admin.deleteUser` sin revisar el footprint).
+- Si nieve algún día tiene cuentas de usuario: las tablas con `user_id` cuyas filas crea la persona
+  usando la app entran en `public.account_footprint` (migración `shared`); las que reescribe un
+  sistema externo mientras algo siga vivo fuera de la base (como `flightly.entitlements`, que
+  reescriben los webhooks de RevenueCat) **no**, porque el usuario de Auth no se borraría nunca (por
+  qué, en ["Auth compartido"](https://github.com/wallealv/wallealv-id/blob/main/docs/shared-supabase.md#auth-compartido)),
+  ni los registros internos que el servidor deriva de otros datos (regla 9).
+  El borrado de cuenta sigue la regla de las otras apps: nunca `auth.admin.deleteUser` sin revisar
+  el footprint, y el borrado con alcance borra **todas** las tablas con `user_id` de nieve, cuenten
+  o no (como `FLIGHTLY_USER_TABLES` en flightly).
 - El código de base de datos (`src/lib/database/`) es solo de servidor: nunca importarlo desde el
   bundle del navegador.
