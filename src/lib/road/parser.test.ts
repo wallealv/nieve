@@ -42,3 +42,15 @@ describe('parseRoadReport', () => {
     expect(result.statement).toBeNull();
   });
 });
+
+describe('parseRoadReport entities', () => {
+  test('decodes named and numeric HTML entities in the statement', () => {
+    const html =
+      '<p>Ruta Provincial 222 (Los Molles &ndash; Las Le&ntilde;as): transitable para todo tipo de veh&iacute;culos. Atenci&#243;n &amp; nieve.</p>';
+    const result = parseRoadReport(html, SOURCE, '2026-07-24T12:00:00Z');
+    expect(result.statement).toBe(
+      'Ruta Provincial 222 (Los Molles – Las Leñas): transitable para todo tipo de vehículos. Atención & nieve.',
+    );
+    expect(result.status).toBe('open');
+  });
+});
