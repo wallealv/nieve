@@ -1,16 +1,8 @@
+import { decodeHtmlEntities } from '../html/entities.js';
 import type { RoadState, RoadStatus } from '../../types/road.js';
 
-function decode(value: string): string {
-  return value
-    .replace(/&nbsp;|&#160;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&ndash;|&#8211;/gi, '–')
-    .replace(/&mdash;|&#8212;/gi, '—')
-    .replace(/&deg;/gi, '°');
-}
-
 function textFromHtml(html: string): string {
-  return decode(
+  return decodeHtmlEntities(
     html
       .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
       .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
